@@ -12,7 +12,8 @@ def main():
     data = read_all()
     print('')
     print('%-18s  %-7s  %-21s  %9s' % ('Key', 'Type', 'Shape', 'Size'))
-    sorted_keys = sorted(data)
+    #sorted_keys = sorted(data)
+    sorted_keys = sorted(sorted(data), key=lambda x: data[x].size, reverse=True)
     for key in sorted_keys:
         print('%-18s  %-7s  %-21s  %9s' %
               (key, data[key].dtype, data[key].shape, data[key].size))
@@ -24,6 +25,11 @@ def read_all():
     read_silo(data)
     calculate(data)
     return data
+
+def write_pickle(data, key):
+    fname = 'pickles/%s.npy' % (key)
+    print('Writing %s to file' % (fname))
+    np.save(fname, data[key])
 
 def read_pickles(data):
     print('Reading pickles from file')
@@ -58,16 +64,15 @@ def read_hdf5(data):
     # Load adjoint data
     data['angular_flux_adj'] = hf.get('angular_flux')[()]
 
-    # Change axes of angular flux
+    # Move energy axis to end
     for key in ['angular_flux_fwd', 'angular_flux_adj']:
-        data[key] = np.transpose(data[key], (3, 2, 1, 4, 0))
+        data[key] = np.transpose(data[key], (1, 2, 3, 4, 0))
 
     # Write pickles
-    keys_final = data.keys()
-    keys_new = [key for key in keys_final if key not in keys_orig]
+    keys_new = sorted([key for key in data.keys() if key not in keys_orig])
     for key in keys_new:
-        #if key.startswith('angular'): continue
-        np.save('pickles/%s' % (key), data[key])
+        if key.startswith('angular'): continue
+        write_pickle(data, key)
 
 def read_silo(data):
     keys_orig = data.keys()
@@ -78,19 +83,21 @@ def read_silo(data):
     db = silo.SiloFile(fname, create=False, mode=silo.DB_READ)
     toc = db.get_toc()
 
-    # Mesh
-    ng = len(data['mesh_g'])
-    nx = len(data['mesh_x']) - 1
-    ny = len(data['mesh_y']) - 1
-    nz = len(data['mesh_z']) - 1
+    # Dimensions
+    nz  = len(data['mesh_z']) - 1  # Number of Z intervals
+    ny  = len(data['mesh_y']) - 1  # Number of Y intervals
+    nx  = len(data['mesh_x']) - 1  # Number of X intervals
+    ngf = len(data['mesh_g'])      # Number of energy groups in flux
+
+    # First energy group
     g0 = data['mesh_g'][0]
 
     # Initialize arrays
-    data['flux_fwd' ] = np.zeros((ng, nx, ny, nz))
-    data['flux_adj' ] = np.zeros((ng, nx, ny, nz))
-    data['current_x'] = np.zeros((ng, nx, ny, nz))
-    data['current_y'] = np.zeros((ng, nx, ny, nz))
-    data['current_z'] = np.zeros((ng, nx, ny, nz))
+    data['flux_fwd' ] = np.zeros((nz, ny, nx, ngf))
+    data['flux_adj' ] = np.zeros((nz, ny, nx, ngf))
+    data['current_x'] = np.zeros((nz, ny, nx, ngf))
+    data['current_y'] = np.zeros((nz, ny, nx, ngf))
+    data['current_z'] = np.zeros((nz, ny, nx, ngf))
 
     # Read flux and current from file
     qvar_names = toc.qvar_names
@@ -101,49 +108,50 @@ def read_silo(data):
                 key = i
                 break
         if key is None: continue
-        try: group = int(name.split('_')[-1]) - g0
-        except: group = None
-        vals = db.get_quadvar(name).vals[0]
-        if group is None: data[key] = vals
-        else: data[key][group, :, :, :] = vals
+        try: ig = int(name.split('_')[-1]) - g0
+        except: continue
+        vals = np.swapaxes(db.get_quadvar(name).vals[0], 0, 2)
+        data[key][:, :, :, ig] = vals
 
     # Write pickles
-    keys_final = data.keys()
-    keys_new = [key for key in keys_final if key not in keys_orig]
-    for key in keys_new: np.save('pickles/%s' % (key), data[key])
+    keys_new = sorted([key for key in data.keys() if key not in keys_orig])
+    for key in keys_new: write_pickle(data, key)
 
 def calculate(data):
     keys_orig = data.keys()
 
-    ng_tot    = data['sigma_t'  ].shape[1]
-    ng_flux   = data['flux_fwd' ].shape[0]
-    nx        = data['flux_fwd' ].shape[1]
-    ny        = data['flux_fwd' ].shape[2]
-    nz        = data['flux_fwd' ].shape[3]
-    num_mixed = data['mix_table'].shape[0]
-    num_mats  = data['mix_table'].shape[1]
+    # Dimensions
+    n_mix = data['mix_table'       ].shape[0]  # Number of mixed materials
+    nm    = data['mix_table'       ].shape[1]  # Number of pure materials
+    nz    = data['angular_flux_fwd'].shape[0]  # Number of Z intervals
+    ny    = data['angular_flux_fwd'].shape[1]  # Number of Y intervals
+    nx    = data['angular_flux_fwd'].shape[2]  # Number of X intervals
+    na    = data['angular_flux_fwd'].shape[3]  # Number of angles
+    ngf   = data['angular_flux_fwd'].shape[4]  # Number of energy groups in flux
+    ngx   = data['sigma_t'         ].shape[1]  # Number of energy groups in XS
 
-    g0 = data['mesh_g'][0]
+    # First and last energy group
+    g0 = data['mesh_g'][ 0]
     g1 = data['mesh_g'][-1]
 
     # Calculate source
-    data['source'] = np.zeros((ng_flux, nx, ny, nz))
+    data['source'] = np.zeros((nz, ny, nx, ngf))
     for i, ind in enumerate(data['source_indices']):
         val = data['source_strengths'][i]
-        ix = ind % nx
-        iy = (ind // nx) % ny
         iz = ind // (ny * nx)
-        data['source'][:, ix, iy, iz] = \
+        iy = (ind // nx) % ny
+        ix = ind % nx
+        data['source'][iz, iy, ix, :] = \
             val * data['source_spectrum'][g0:g1 + 1]
 
     # Calculate response
-    data['response'] = np.zeros((ng_flux, nx, ny, nz))
+    data['response'] = np.zeros((nz, ny, nx, ngf))
     for i, ind in enumerate(data['response_indices']):
         val = data['response_strengths'][i]
-        ix = ind % nx
-        iy = (ind // nx) % ny
         iz = ind // (ny * nx)
-        data['response'][:, ix, iy, iz] = \
+        iy = (ind // nx) % ny
+        ix = ind % nx
+        data['response'][iz, iy, ix, :] = \
             val * data['response_spectrum'][g0:g1 + 1]
 
     # Calculate contributon
@@ -154,33 +162,30 @@ def calculate(data):
                                data['current_z']**2))
 
     # Calculate total flux
-    data['flux_fwd_int'   ] = np.sum(data['flux_fwd'   ], 0)
-    data['flux_adj_int'   ] = np.sum(data['flux_adj'   ], 0)
-    data['contributon_int'] = np.sum(data['contributon'], 0)
+    data['flux_fwd_int'   ] = np.sum(data['flux_fwd'   ], 3)
+    data['flux_adj_int'   ] = np.sum(data['flux_adj'   ], 3)
+    data['contributon_int'] = np.sum(data['contributon'], 3)
 
     # Calculate cross sections for mixed materials
-    data['sigma_t_mixed'] = np.zeros((num_mixed, ng_tot))
-    data['sigma_s_mixed'] = np.zeros((num_mixed, ng_tot, ng_tot))
-    for i_mix, i_mat in itertools.product(xrange(num_mixed), xrange(num_mats)):
-        frac = data['mix_table'][i_mix, i_mat]
+    data['sigma_t_mixed'] = np.zeros((n_mix, ngx))
+    data['sigma_s_mixed'] = np.zeros((n_mix, ngx, ngx))
+    for i_mix, im in itertools.product(xrange(n_mix), xrange(nm)):
+        frac = data['mix_table'][i_mix, im]
         if frac == 0.0: continue
-        data['sigma_t_mixed'][i_mix, :] += \
-            data['sigma_t'][i_mat, :] * frac
-        data['sigma_s_mixed'][i_mix, :, :] += \
-            data['sigma_s'][i_mat, :, :] * frac
+        data['sigma_t_mixed'][i_mix, :] += data['sigma_t'][im, :] * frac
+        data['sigma_s_mixed'][i_mix, :, :] += data['sigma_s'][im, :, :] * frac
 
     # Calculate perturbed cross sections
-    data['sigma_t_pert'] = np.zeros((num_mixed, num_mats, ng_tot))
-    data['sigma_s_pert'] = np.zeros((num_mixed, num_mats, ng_tot, ng_tot))
-    for i_mix, i_mat in itertools.product(xrange(num_mixed), xrange(num_mats)):
-        data['sigma_t_pert'][i_mix, i_mat, :] = \
-            data['sigma_t'][i_mat, :] - data['sigma_t_mixed'][i_mix, :]
-        data['sigma_s_pert'][i_mix, i_mat, :, :] = \
-            data['sigma_s'][i_mat, :, :] - data['sigma_s_mixed'][i_mix, :, :]
+    data['sigma_t_pert'] = np.zeros((n_mix, nm, ngx))
+    data['sigma_s_pert'] = np.zeros((n_mix, nm, ngx, ngx))
+    for i_mix, im in itertools.product(xrange(n_mix), xrange(nm)):
+        data['sigma_t_pert'][i_mix, im, :] = \
+            data['sigma_t'][im, :] - data['sigma_t_mixed'][i_mix, :]
+        data['sigma_s_pert'][i_mix, im, :, :] = \
+            data['sigma_s'][im, :, :] - data['sigma_s_mixed'][i_mix, :, :]
 
     # Write pickles
-    keys_final = data.keys()
-    keys_new = [key for key in keys_final if key not in keys_orig]
-    for key in keys_new: np.save('pickles/%s' % (key), data[key])
+    keys_new = sorted([key for key in data.keys() if key not in keys_orig])
+    for key in keys_new: write_pickle(data, key)
 
 if __name__ == '__main__': main()

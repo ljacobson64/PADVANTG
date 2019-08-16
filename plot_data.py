@@ -30,74 +30,73 @@ def read_all():
     return data
 
 def plot_all(data):
-    ng_tot   = data['sigma_t'  ].shape[1]
-    ng_flux  = data['flux_fwd' ].shape[0]
-    nx       = data['flux_fwd' ].shape[1]
-    ny       = data['flux_fwd' ].shape[2]
-    nz       = data['flux_fwd' ].shape[3]
-    num_mats = data['mix_table'].shape[1]
+    nm = data['mix_table'   ].shape[1]  # Number of pure materials
+    nz = data['flux_fwd_int'].shape[0]  # Number of Z intervals
+    
+    g0 = data['mesh_g'][0]  # First energy group
 
-    g0 = data['mesh_g'][0]
-
-    x_vals = data['mesh_x']
-    y_vals = data['mesh_y']
-    hz = nz / 2
+    x_vals = data['mesh_x']  # Horizontal direction
+    y_vals = data['mesh_y']  # Vertical direction
+    
+    hz = nz / 2  # Use the middle Z slice
 
     # Plot spectra
     plot_spectra(data['source_spectrum'], data['response_spectrum'])
 
     # Plot total source
-    flux = np.flipud(np.rot90(np.sum(data['source'][:, :, :, hz], 0)))
+    flux = np.sum(data['source'][hz, :, :, :], 2)
     title = 'Source (Total)'
     fname = 'source_total.png'
     plot_flux(flux, x_vals, y_vals, title, fname, 'lin')
 
     # Plot total response
-    flux = np.flipud(np.rot90(np.sum(data['response'][:, :, :, hz], 0)))
+    flux = np.sum(data['response'][hz, :, :, :], 2)
     title = 'Response (Total)'
     fname = 'response_total.png'
     plot_flux(flux, x_vals, y_vals, title, fname, 'lin')
 
     # Plot total forward flux
-    flux = np.flipud(np.rot90(np.sum(data['flux_fwd'][:, :, :, hz], 0)))
+    flux = np.sum(data['flux_fwd'][hz, :, :, :], 2)
     title = 'Forward Flux (Total)'
     fname = 'flux_forward_total.png'
     plot_flux(flux, x_vals, y_vals, title, fname, 'log')
 
     # Plot total adjoint flux
-    flux = np.flipud(np.rot90(np.sum(data['flux_adj'][:, :, :, hz], 0)))
+    flux = np.sum(data['flux_adj'][hz, :, :, :], 2)
     title = 'Adjoint Flux (Total)'
     fname = 'flux_adjoint_total.png'
     plot_flux(flux, x_vals, y_vals, title, fname, 'log')
 
     # Plot total contributon
-    flux = np.flipud(np.rot90(np.sum(data['contributon'][:, :, :, hz], 0)))
+    flux = np.sum(data['contributon'][hz, :, :, :], 2)
     title = 'Contributon (Total)'
     fname = 'contributon_total.png'
     plot_flux(flux, x_vals, y_vals, title, fname, 'log')
 
     # Plots for the fast group (2) and thermal group (26)
-    for g in [2, 26]:
-        flux = np.flipud(np.rot90(data['flux_fwd'][g - g0, :, :, hz]))
-        title = 'Forward Flux (Group %u)' % (g)
-        fname = 'flux_forward_g%02u.png' % (g)
+    for gx in [2, 26]:
+        gf = gx - g0
+
+        flux = data['flux_fwd'][hz, :, :, gf]
+        title = 'Forward Flux (Group %u)' % (gx)
+        fname = 'flux_forward_g%02u.png'  % (gx)
         plot_flux(flux, x_vals, y_vals, title, fname, 'log')
 
-        flux = np.flipud(np.rot90(data['flux_adj'][g - g0, :, :, hz]))
-        title = 'Adjoint Flux (Group %u)' % (g)
-        fname = 'flux_adjoint_g%02u.png' % (g)
+        flux = data['flux_adj'][hz, :, :, gf]
+        title = 'Adjoint Flux (Group %u)' % (gx)
+        fname = 'flux_adjoint_g%02u.png'  % (gx)
         plot_flux(flux, x_vals, y_vals, title, fname, 'log')
 
-        flux = np.flipud(np.rot90(data['contributon'][g - g0, :, :, hz]))
-        title = 'Contributon (Group %u)' % (g)
-        fname = 'contributon_g%02u.png' % (g)
+        flux = data['contributon'][hz, :, :, gf]
+        title = 'Contributon (Group %u)' % (gx)
+        fname = 'contributon_g%02u.png'  % (gx)
         plot_flux(flux, x_vals, y_vals, title, fname, 'log')
 
     # Plot dR for all materials
-    for i in range(num_mats):
-        flux = np.flipud(np.rot90(data['dR'][i, :, :, hz]))
-        title = r'$\delta R$ for Material %u (%s)' % (i, data['mat_names'][i])
-        fname = 'dR_%02u.png' % (i)
+    for im in range(nm):
+        flux = data['dR'][im, hz, :, :]
+        title = r'$\delta R$ for Material %u (%s)' % (im, data['mat_names'][im])
+        fname = 'dR_%02u.png' % (im)
         plot_flux(flux, x_vals, y_vals, title, fname, 'logplusminus')
 
 def plot_flux(result, x_vals, y_vals, title, fname, fmt):

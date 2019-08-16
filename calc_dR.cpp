@@ -28,29 +28,29 @@ int main() {
   NpyArray material_map_np = read_pickle("material_map");
   NpyArray mesh_g_np = read_pickle("mesh_g");
 
-  // Get some dimensions
-  int num_mixed = sigma_t_pert_np.shape[0]; // Number of mixed materials
-  int nm = sigma_t_pert_np.shape[1];        // Number of pure materials
-  int nx = flux_fwd_np.shape[0];            // Number of x intervals
-  int ny = flux_fwd_np.shape[1];            // Number of y intervals
-  int nz = flux_fwd_np.shape[2];            // Number of z intervals
-  int na = flux_fwd_np.shape[3];            // Number of angles
-  int ngf = flux_fwd_np.shape[4];           // Number of energy groups in flux
-  int ngx = sigma_t_pert_np.shape[2];       // Number of energy groups in XS
+  // Dimensions
+  int n_mix = sigma_t_pert_np.shape[0]; // Number of mixed materials
+  int nm = sigma_t_pert_np.shape[1];    // Number of pure materials
+  int nz = flux_fwd_np.shape[0];        // Number of Z intervals
+  int ny = flux_fwd_np.shape[1];        // Number of Y intervals
+  int nx = flux_fwd_np.shape[2];        // Number of X intervals
+  int na = flux_fwd_np.shape[3];        // Number of angles
+  int ngf = flux_fwd_np.shape[4];       // Number of energy groups in flux
+  int ngx = sigma_t_pert_np.shape[2];   // Number of energy groups in XS
 
   // Convert pickle data to Boost MultiArrays
   multi_array_ref<double, 5> flux_fwd{flux_fwd_np.data<double>(),
-                                      extents[nx][ny][nz][na][ngf]};
+                                      extents[nz][ny][nx][na][ngf]};
   multi_array_ref<double, 5> flux_adj{flux_adj_np.data<double>(),
-                                      extents[nx][ny][nz][na][ngf]};
+                                      extents[nz][ny][nx][na][ngf]};
   multi_array_ref<double, 1> quad_weights{quad_weights_np.data<double>(),
                                           extents[na]};
   multi_array_ref<double, 3> sigma_t_pert{sigma_t_pert_np.data<double>(),
-                                          extents[num_mixed][nm][ngx]};
+                                          extents[n_mix][nm][ngx]};
   multi_array_ref<double, 4> sigma_s_pert{sigma_s_pert_np.data<double>(),
-                                          extents[num_mixed][nm][ngx][ngx]};
+                                          extents[n_mix][nm][ngx][ngx]};
   multi_array_ref<long long int, 3> material_map{
-      material_map_np.data<long long int>(), extents[nx][ny][nz]};
+      material_map_np.data<long long int>(), extents[nz][ny][nx]};
   multi_array_ref<long long int, 1> mesh_g{mesh_g_np.data<long long int>(),
                                            extents[ngf]};
 
@@ -58,34 +58,34 @@ int main() {
   int g0 = mesh_g[0];
 
   // Allocate array for dR
-  multi_array<double, 4> dR{boost::extents[nm][nx][ny][nz]};
+  multi_array<double, 4> dR{boost::extents[nm][nz][ny][nx]};
 
   // Calculate dR
   for (int im = 0; im < nm; im++) { // Material index
     cout << "Calculating dR for material " << im + 1 << " of " << nm << endl;
-    for (int ix = 0; ix < nx; ix++) {             // X mesh index
+    for (int iz = 0; iz < nz; iz++) {             // Z mesh index
       for (int iy = 0; iy < ny; iy++) {           // Y mesh index
-        for (int iz = 0; iz < nz; iz++) {         // Z mesh index
-          int i_mix = material_map[ix][iy][iz];   // Mixed material index
+        for (int ix = 0; ix < nx; ix++) {         // X mesh index
+          int i_mix = material_map[iz][iy][ix];   // Mixed material index
           for (int ia = 0; ia < na; ia++) {       // Angle index
             double qw = quad_weights[ia];         // Quadrature weight
             for (int igf = 0; igf < ngf; igf++) { // Energy index (in flux data)
               int igx = igf + g0; // Energy index (in cross section data)
               // Total component of dHphi
               double dHphi_t =
-                  sigma_t_pert[i_mix][im][igx] * flux_fwd[ix][iy][iz][ia][igf];
+                  sigma_t_pert[i_mix][im][igx] * flux_fwd[iz][iy][ix][ia][igf];
               // Scattering component of dHphi
               double dHphi_s = 0.0;
               for (int igf2 = 0; igf2 < ngf; igf2++) {
                 int igx2 = igf2 + g0;
                 dHphi_s += -sigma_s_pert[i_mix][im][igx][igx2] *
-                           flux_fwd[ix][iy][iz][ia][igf2];
+                           flux_fwd[iz][iy][ix][ia][igf2];
               }
               // dR
               double dHphi = dHphi_t + dHphi_s;
               double dR_comp =
-                  -flux_adj[ix][iy][iz][ia][igf] * dHphi * qw / (4.0 * PI);
-              dR[im][ix][iy][iz] += dR_comp;
+                  -flux_adj[iz][iy][ix][ia][igf] * dHphi * qw / (4.0 * PI);
+              dR[im][iz][iy][ix] += dR_comp;
             }
           }
         }
@@ -96,9 +96,9 @@ int main() {
   // Write dR to file
   std::string fname = "pickles/dR.bin";
   cout << "Writing " << fname << " to file" << endl;
-  // cnpy::npy_save(fname, &dR, {nm, nx, ny, nz}, "w");
+  // cnpy::npy_save(fname, &dR, {nm, nz, ny, nx}, "w");
   FILE *f = fopen(fname.c_str(), "wb");
-  fwrite(&dR[0][0][0][0], sizeof(double), nm * nx * ny * nz, f);
+  fwrite(&dR[0][0][0][0], sizeof(double), nm * nz * ny * nx, f);
   fclose(f);
 
   return 0;
