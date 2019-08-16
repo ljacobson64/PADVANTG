@@ -1,0 +1,23 @@
+origin 10000 10000 10000
+label 0 0
+
+shade   4 LightBlue
+
+shade  13 CadetBlue
+
+shade  24 yellow
+shade  26 yellow
+
+shade  63 salmon
+
+shade 158 MediumPurple
+
+shade 248 burlywood
+
+shade 353 RoyalBlue
+
+shade 354 DodgerBlue
+
+basis 1 0 0 0 1 0
+extent 25
+origin 0 0 0

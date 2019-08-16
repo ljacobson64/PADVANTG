@@ -1,0 +1,40 @@
+method                      dx
+dx_forward                  true
+dx_adjoint                  true
+
+anisn_library               27n19g
+anisn_upscatter             False
+
+denovo_first_group          2
+denovo_last_group           26
+denovo_verbose              true
+denovo_silo_mixed           true
+denovo_silo_moments         true
+denovo_hdf5_angles          true
+
+mcnp_input                  mcnp.i
+mcnp_tallies                4
+
+denovo_x_blocks             2
+denovo_y_blocks             4
+denovo_z_blocks             2
+
+mcnp_material_names           4 "Air (Dry, Near Sea Level)"
+                             13 "Aluminum, Alloy 6061-O"
+                             24 "Beryllium"
+                             26 "Beryllium Oxide"
+                             63 "Carbon, Graphite (Reactor Grade)"
+                            158 "Iron"
+                            248 "Polyethylene, Non-borated"
+                            353 "Water, Heavy"
+                            354 "Water, Liquid"
+                            501 "Uranium-235"
+
+mesh_x                       -20.0     0.55    1.05    1.35    5.6     6.35    6.65    7.4     7.9    20.0
+mesh_x_ints                           21       1       1       4       1       1       1       1      12
+mesh_y                       -20.0   -12.5    -7.5    -5.0    -3.3    -3.0    -2.75    2.75    3.0     3.3     5.0     7.5    12.5    20.0
+mesh_y_ints                            7       5       3       2       1       1       6       1       1       2       3       5       7
+mesh_z                       -20.0   -12.5    -7.5    -5.0    -3.3    -3.0    -2.75    2.75    3.0     3.3     5.0     7.5    12.5    20.0
+mesh_z_ints                            7       5       3       2       1       1       6       1       1       2       3       5       7
+
+# 43 * 44 * 44 = 83,248
