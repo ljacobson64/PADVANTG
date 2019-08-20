@@ -21,9 +21,8 @@ NpyArray read_pickle(std::string fname) {
 
 int main() {
   // Load pickle data
-  NpyArray flux_fwd_np = read_pickle("angular_flux_fwd");
-  NpyArray flux_adj_np = read_pickle("angular_flux_adj");
-  NpyArray quad_weights_np = read_pickle("quadrature_weights");
+  NpyArray flux_fwd_np = read_pickle("flux_fwd");
+  NpyArray flux_adj_np = read_pickle("flux_adj");
   NpyArray sigma_t_pert_np = read_pickle("sigma_t_pert");
   NpyArray sigma_s_pert_np = read_pickle("sigma_s_pert");
   NpyArray material_map_np = read_pickle("material_map");
@@ -35,17 +34,14 @@ int main() {
   int nz = flux_fwd_np.shape[0];        // Number of Z intervals
   int ny = flux_fwd_np.shape[1];        // Number of Y intervals
   int nx = flux_fwd_np.shape[2];        // Number of X intervals
-  int na = flux_fwd_np.shape[3];        // Number of angles
-  int ngf = flux_fwd_np.shape[4];       // Number of energy groups in flux
+  int ngf = flux_fwd_np.shape[3];       // Number of energy groups in flux
   int ngx = sigma_t_pert_np.shape[2];   // Number of energy groups in XS
 
   // Convert pickle data to Boost MultiArrays
-  multi_array_ref<double, 5> flux_fwd{flux_fwd_np.data<double>(),
-                                      extents[nz][ny][nx][na][ngf]};
-  multi_array_ref<double, 5> flux_adj{flux_adj_np.data<double>(),
-                                      extents[nz][ny][nx][na][ngf]};
-  multi_array_ref<double, 1> quad_weights{quad_weights_np.data<double>(),
-                                          extents[na]};
+  multi_array_ref<double, 4> flux_fwd{flux_fwd_np.data<double>(),
+                                      extents[nz][ny][nx][ngf]};
+  multi_array_ref<double, 4> flux_adj{flux_adj_np.data<double>(),
+                                      extents[nz][ny][nx][ngf]};
   multi_array_ref<double, 3> sigma_t_pert{sigma_t_pert_np.data<double>(),
                                           extents[n_mix][nm][ngx]};
   multi_array_ref<double, 4> sigma_s_pert{sigma_s_pert_np.data<double>(),
@@ -68,26 +64,22 @@ int main() {
       for (int iy = 0; iy < ny; iy++) {           // Y mesh index
         for (int ix = 0; ix < nx; ix++) {         // X mesh index
           int i_mix = material_map[iz][iy][ix];   // Mixed material index
-          for (int ia = 0; ia < na; ia++) {       // Angle index
-            double qw = quad_weights[ia];         // Quadrature weight
-            for (int igf = 0; igf < ngf; igf++) { // Energy index (in flux data)
-              int igx = igf + g0; // Energy index (in cross section data)
-              // Total component of dHphi
-              double dHphi_t =
-                  sigma_t_pert[i_mix][im][igx] * flux_fwd[iz][iy][ix][ia][igf];
-              // Scattering component of dHphi
-              double dHphi_s = 0.0;
-              for (int igf2 = 0; igf2 < ngf; igf2++) {
-                int igx2 = igf2 + g0;
-                dHphi_s += -sigma_s_pert[i_mix][im][igx][igx2] *
-                           flux_fwd[iz][iy][ix][ia][igf2];
-              }
-              // dR
-              double dHphi = dHphi_t + dHphi_s;
-              double dR_comp =
-                  -flux_adj[iz][iy][ix][ia][igf] * dHphi * qw / (4.0 * PI);
-              dR[im][iz][iy][ix] += dR_comp;
+          for (int igf = 0; igf < ngf; igf++) {   // Energy index (in flux data)
+            int igx = igf + g0; // Energy index (in cross section data)
+            // Total component of dHphi
+            double dHphi_t =
+                sigma_t_pert[i_mix][im][igx] * flux_fwd[iz][iy][ix][igf];
+            // Scattering component of dHphi
+            double dHphi_s = 0.0;
+            for (int igf2 = 0; igf2 < ngf; igf2++) {
+              int igx2 = igf2 + g0;
+              dHphi_s += -sigma_s_pert[i_mix][im][igx][igx2] *
+                         flux_fwd[iz][iy][ix][igf2];
             }
+            // dR
+            double dHphi = dHphi_t + dHphi_s;
+            double dR_comp = -flux_adj[iz][iy][ix][igf] * dHphi;
+            dR[im][iz][iy][ix] += dR_comp;
           }
         }
       }
@@ -95,7 +87,7 @@ int main() {
   }
 
   // Write dR to file
-  string fname = "pickles/dR.npy";
+  string fname = "pickles/dR_scalar.npy";
   cout << "Writing " << fname << " to file" << endl;
   npy_save(fname, &dR[0][0][0][0], {nm, nz, ny, nx}, "w");
 

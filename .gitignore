@@ -5,4 +5,5 @@
 /text_files
 /pickles
 /images
-/calc_dR_ang
+/calc_dR_angular
+/calc_dR_scalar
