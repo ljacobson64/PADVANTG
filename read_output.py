@@ -71,7 +71,7 @@ def read_hdf5(data):
     # Write pickles
     keys_new = sorted([key for key in data.keys() if key not in keys_orig])
     for key in keys_new:
-        if key.startswith('angular'): continue
+        #if key.startswith('angular'): continue
         write_pickle(data, key)
 
 def read_silo(data):
