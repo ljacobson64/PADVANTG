@@ -11,6 +11,7 @@ using cnpy::npy_save;
 using cnpy::NpyArray;
 using std::cout;
 using std::endl;
+using std::string;
 
 NpyArray read_pickle(std::string fname) {
   cout << "Reading pickles/" << fname << ".npy from file" << endl;
@@ -94,12 +95,9 @@ int main() {
   }
 
   // Write dR to file
-  std::string fname = "pickles/dR.bin";
+  string fname = "pickles/dR.npy";
   cout << "Writing " << fname << " to file" << endl;
-  // cnpy::npy_save(fname, &dR, {nm, nz, ny, nx}, "w");
-  FILE *f = fopen(fname.c_str(), "wb");
-  fwrite(&dR[0][0][0][0], sizeof(double), nm * nz * ny * nx, f);
-  fclose(f);
+  npy_save(fname, &dR[0][0][0][0], {nm, nz, ny, nx}, "w");
 
   return 0;
 }

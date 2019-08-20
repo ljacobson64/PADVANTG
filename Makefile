@@ -4,7 +4,7 @@ CNPY_FLAGS := -I$(CNPY_DIR)/include -L$(CNPY_DIR)/lib -Wl,-rpath,$(CNPY_DIR)/lib
 DEBUG_FLAGS := -g -O0
 OPT_FLAGS := -O3
 
-EXEC := g++ -o calc_dR calc_dR.cpp $(CNPY_FLAGS) -Wno-narrowing
+EXEC := g++ -o calc_dR_ang calc_dR_ang.cpp $(CNPY_FLAGS) -Wno-narrowing
 
 all:
 	$(EXEC) $(OPT_FLAGS)

@@ -10,24 +10,15 @@ from draw_geom import draw_geometry
 from mcnp_colors import mcnp_colors as MC
 
 def main():
-    data = read_all()
+    data = read_pickles()
     plot_all(data)
 
-def read_all():
+def read_pickles():
     data = {}
-
-    # Read pickles
     for fname in os.listdir('pickles'):
         if not fname.endswith('.npy'): continue
         if fname.startswith('angular'): continue
         data[fname[:-4]] = np.load('pickles/%s' % (fname))
-
-    # Read binary dR
-    with open('pickles/dR.bin', 'rb') as f: dR = np.fromfile(f, '<f8')
-    dR_shape = (data['mat_names'].shape[0], data['material_map'].shape[0],
-                data['material_map'].shape[1], data['material_map'].shape[2])
-    data['dR'] = dR.reshape(dR_shape)
-
     return data
 
 def plot_all(data):
