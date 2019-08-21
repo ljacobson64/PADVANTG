@@ -18,4 +18,4 @@ cmake .. ${cmake_string}
 make -j${jobs}
 make install
 cd ..
-rm -rf bld
+#rm -rf bld

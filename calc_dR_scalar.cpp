@@ -1,3 +1,5 @@
+#include <chrono>
+
 #include "boost/multi_array.hpp"
 #include "cnpy.h"
 
@@ -12,6 +14,9 @@ using cnpy::NpyArray;
 using std::cout;
 using std::endl;
 using std::string;
+using std::chrono::duration;
+using std::chrono::duration_cast;
+using std::chrono::high_resolution_clock;
 
 NpyArray read_pickle(std::string fname) {
   cout << "Reading pickles/" << fname << ".npy from file" << endl;
@@ -58,13 +63,14 @@ int main() {
   multi_array<double, 4> dR{boost::extents[nm][nz][ny][nx]};
 
   // Calculate dR
+  high_resolution_clock::time_point begin = high_resolution_clock::now();
   for (int im = 0; im < nm; im++) { // Material index
     cout << "Calculating dR for material " << im + 1 << " of " << nm << endl;
-    for (int iz = 0; iz < nz; iz++) {             // Z mesh index
-      for (int iy = 0; iy < ny; iy++) {           // Y mesh index
-        for (int ix = 0; ix < nx; ix++) {         // X mesh index
-          int i_mix = material_map[iz][iy][ix];   // Mixed material index
-          for (int igf = 0; igf < ngf; igf++) {   // Energy index (in flux data)
+    for (int iz = 0; iz < nz; iz++) {           // Z mesh index
+      for (int iy = 0; iy < ny; iy++) {         // Y mesh index
+        for (int ix = 0; ix < nx; ix++) {       // X mesh index
+          int i_mix = material_map[iz][iy][ix]; // Mixed material index
+          for (int igf = 0; igf < ngf; igf++) { // Energy index (in flux data)
             int igx = igf + g0; // Energy index (in cross section data)
             // Total component of dHphi
             double dHphi_t =
@@ -85,6 +91,10 @@ int main() {
       }
     }
   }
+  high_resolution_clock::time_point end = high_resolution_clock::now();
+  double elapsed = duration_cast<duration<double>>(end - begin).count();
+  cout << "Calculated dR for all materials in " << elapsed << " seconds"
+       << endl;
 
   // Write dR to file
   string fname = "pickles/dR_scalar.npy";
