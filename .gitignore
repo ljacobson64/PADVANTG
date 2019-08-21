@@ -1,9 +1,10 @@
-/model
-/output
-/fwd_solution
 /adj_solution
-/text_files
-/pickles
-/images
+/bld
 /calc_dR_angular
 /calc_dR_scalar
+/fwd_solution
+/images
+/model
+/output
+/pickles
+/text_files
