@@ -1,7 +1,9 @@
 #!/usr/bin/python
 
 import os
+import copy
 import numpy as np
+import matplotlib.cm as cm
 import matplotlib.colors as colors
 import matplotlib.pyplot as plt
 from cycler import cycler
@@ -66,10 +68,10 @@ def plot_all(data):
     fname = 'flux_adjoint_total.png'
     plot_map(plot_data, x_vals, y_vals, title, fname, 'log')
 
-    # Plot total contributon
+    # Plot total contributon flux
     plot_data = np.sum(data['contributon'][hz, :, :, :], 2)
-    title = 'Contributon (Total)'
-    fname = 'contributon_total.png'
+    title = 'Contributon Flux (Total)'
+    fname = 'flux_contrib_total.png'
     plot_map(plot_data, x_vals, y_vals, title, fname, 'log')
 
     # Plot total forward current
@@ -106,10 +108,10 @@ def plot_all(data):
         fname = 'flux_adjoint_g%02u.png'  % (igx)
         plot_map(plot_data, x_vals, y_vals, title, fname, 'log')
 
-        # Contributon
+        # Contributon flux
         plot_data = data['contributon'][hz, :, :, igf]
-        title = 'Contributon (Group %u)' % (igx)
-        fname = 'contributon_g%02u.png'  % (igx)
+        title = 'Contributon Flux (Group %u)' % (igx)
+        fname = 'flux_contrib_g%02u.png'  % (igx)
         plot_map(plot_data, x_vals, y_vals, title, fname, 'log')
 
         # Forward current
@@ -171,12 +173,13 @@ def plot_map(plot_data, x_vals, y_vals, title, fname, fmt, mat_names=None):
     elif fmt == 'log':
         result_min_nonzero = np.min(plot_data[plot_data != 0])
         result_max_nonzero = np.max(plot_data[plot_data != 0])
-        logvmin = np.floor(np.log10(result_min_nonzero))
         logvmax = np.ceil(np.log10(result_max_nonzero))
+        logvmin = max(np.floor(np.log10(result_min_nonzero)), logvmax - 10)
         vmin = 10**logvmin
         vmax = 10**logvmax
         norm = colors.LogNorm(vmin=vmin, vmax=vmax)
-        cmap = 'Spectral_r'
+        cmap = copy.copy(cm.get_cmap('Spectral_r'))
+        cmap.set_bad(cmap(0.0))
         ticks = [10**x for x in np.arange(logvmin, logvmax + 1, 1)]
         tick_labels = [r'$10^{%u}$' % (x) for x in
                        np.arange(logvmin, logvmax + 1, 1)]
