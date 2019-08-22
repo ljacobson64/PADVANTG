@@ -84,6 +84,12 @@ def plot_all(data):
     fname = 'current_adjoint_total.png'
     plot_quiver(plot_data, x_vals, y_vals, title, fname)
 
+    # Plot total contributon current
+    plot_data = np.sum(data['current_contrib'][hz, :, :, :, :2], 2)
+    title = 'Contributon Current (Total)'
+    fname = 'current_contrib_total.png'
+    plot_quiver(plot_data, x_vals, y_vals, title, fname)
+
     # Plots for the fast group (2) and thermal group (26)
     for igx in [2, 26]:
         igf = igx - g0
@@ -116,6 +122,12 @@ def plot_all(data):
         plot_data = data['current_adj'][hz, :, :, igf, :2]
         title = 'Adjoint Current (Group %u)' % (igx)
         fname = 'current_adjoint_g%02u.png'  % (igx)
+        plot_quiver(plot_data, x_vals, y_vals, title, fname)
+
+        # Contributon current
+        plot_data = data['current_contrib'][hz, :, :, igf, :2]
+        title = 'Contributon Current (Group %u)' % (igx)
+        fname = 'current_contrib_g%02u.png'  % (igx)
         plot_quiver(plot_data, x_vals, y_vals, title, fname)
 
     # Plot dR for all materials

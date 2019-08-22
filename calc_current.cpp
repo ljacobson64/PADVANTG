@@ -50,6 +50,7 @@ int main() {
   // Allocate arrays for current
   multi_array<double, 5> current_fwd{extents[nz][ny][nx][ngf][3]};
   multi_array<double, 5> current_adj{extents[nz][ny][nx][ngf][3]};
+  multi_array<double, 5> current_contrib{extents[nz][ny][nx][ngf][3]};
 
   // Calculate current
   high_resolution_clock::time_point begin = high_resolution_clock::now();
@@ -70,6 +71,14 @@ int main() {
       }
     }
   }
+  for (int iz = 0; iz < nz; iz++)
+    for (int iy = 0; iy < ny; iy++)
+      for (int ix = 0; ix < nx; ix++)
+        for (int igf = 0; igf < ngf; igf++)
+          for (int id = 0; id < 3; id++)
+            current_contrib[iz][iy][ix][igf][id] =
+                current_fwd[iz][iy][ix][igf][id] *
+                current_adj[iz][iy][ix][igf][id];
   high_resolution_clock::time_point end = high_resolution_clock::now();
   double elapsed = duration_cast<duration<double>>(end - begin).count();
   cout << "Calculated current in " << elapsed << " seconds" << endl;
@@ -81,6 +90,9 @@ int main() {
   fname = "pickles/current_adj.npy";
   cout << "Writing " << fname << " to file" << endl;
   npy_save(fname, &current_adj[0][0][0][0][0], {nz, ny, nx, ngf, 3}, "w");
+  fname = "pickles/current_contrib.npy";
+  cout << "Writing " << fname << " to file" << endl;
+  npy_save(fname, &current_contrib[0][0][0][0][0], {nz, ny, nx, ngf, 3}, "w");
 
   return 0;
 }
