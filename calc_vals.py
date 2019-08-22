@@ -55,6 +55,20 @@ def calculate(data):
     g0 = data['mesh_g'][ 0]
     g1 = data['mesh_g'][-1]
 
+    # Calculate reverse angle map
+    data['reverse_angle_map'] = np.zeros(na, dtype=np.int64)
+    for i in xrange(na):
+        ix = data['angles'][i, 0]
+        iy = data['angles'][i, 1]
+        iz = data['angles'][i, 2]
+        for j in xrange(na):
+            jx = data['angles'][j, 0]
+            jy = data['angles'][j, 1]
+            jz = data['angles'][j, 2]
+            if ix == -jx and iy == -jy and iz == -jz:
+                data['reverse_angle_map'][i] = j
+                break
+
     # Calculate source
     print('Calculating source')
     data['source'] = np.zeros((nz, ny, nx, ngf))
@@ -87,7 +101,8 @@ def calculate(data):
     print('Calculating contributon')
     if use_angular:
         data['contributon'] = np.sum(data['angular_flux_fwd'] *
-                                     data['angular_flux_adj'] * qw, 3)
+            data['angular_flux_adj'][:, :, :, data['reverse_angle_map'], :] *
+            qw, 3)
     else: data['contributon'] = data['flux_fwd'] * data['flux_adj']
 
     # Calculate energy-integrated flux
