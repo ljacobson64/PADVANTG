@@ -18,7 +18,7 @@ using std::chrono::duration;
 using std::chrono::duration_cast;
 using std::chrono::high_resolution_clock;
 
-NpyArray read_pickle(std::string fname) {
+NpyArray read_pickle(string fname) {
   cout << "Reading pickles/" << fname << ".npy from file" << endl;
   NpyArray pickle = npy_load("pickles/" + fname + ".npy");
   return pickle;
@@ -60,7 +60,7 @@ int main() {
   int g0 = mesh_g[0];
 
   // Allocate array for dR
-  multi_array<double, 4> dR{boost::extents[nm][nz][ny][nx]};
+  multi_array<double, 4> dR{extents[nm][nz][ny][nx]};
 
   // Calculate dR
   high_resolution_clock::time_point begin = high_resolution_clock::now();

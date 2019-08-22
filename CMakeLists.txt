@@ -28,9 +28,12 @@ message(STATUS "CMAKE_CXX_FLAGS:      ${CMAKE_CXX_FLAGS}"     )
 message("")
 
 # Install executables
+add_executable(calc_current    calc_current.cpp   )
 add_executable(calc_dR_angular calc_dR_angular.cpp)
 add_executable(calc_dR_scalar  calc_dR_scalar.cpp )
+target_link_libraries(calc_current    cnpy)
 target_link_libraries(calc_dR_angular cnpy)
 target_link_libraries(calc_dR_scalar  cnpy)
+install(TARGETS calc_current    DESTINATION ".")
 install(TARGETS calc_dR_angular DESTINATION ".")
 install(TARGETS calc_dR_scalar  DESTINATION ".")

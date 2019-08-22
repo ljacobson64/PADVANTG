@@ -39,57 +39,84 @@ def plot_all(data):
     plot_data = data['material_map'][hz, :, :]
     title = 'Material Map'
     fname = 'material_map.png'
-    plot_flux(plot_data, x_vals, y_vals, title, fname, 'mats',
+    plot_map(plot_data, x_vals, y_vals, title, fname, 'mats',
               mat_names=data['mat_names'])
 
     # Plot total source
     plot_data = np.sum(data['source'][hz, :, :, :], 2)
     title = 'Source (Total)'
     fname = 'source_total.png'
-    plot_flux(plot_data, x_vals, y_vals, title, fname, 'lin')
+    plot_map(plot_data, x_vals, y_vals, title, fname, 'lin')
 
     # Plot total response
     plot_data = np.sum(data['response'][hz, :, :, :], 2)
     title = 'Response (Total)'
     fname = 'response_total.png'
-    plot_flux(plot_data, x_vals, y_vals, title, fname, 'lin')
+    plot_map(plot_data, x_vals, y_vals, title, fname, 'lin')
 
     # Plot total forward flux
     plot_data = np.sum(data['flux_fwd'][hz, :, :, :], 2)
     title = 'Forward Flux (Total)'
     fname = 'flux_forward_total.png'
-    plot_flux(plot_data, x_vals, y_vals, title, fname, 'log')
+    plot_map(plot_data, x_vals, y_vals, title, fname, 'log')
 
     # Plot total adjoint flux
     plot_data = np.sum(data['flux_adj'][hz, :, :, :], 2)
     title = 'Adjoint Flux (Total)'
     fname = 'flux_adjoint_total.png'
-    plot_flux(plot_data, x_vals, y_vals, title, fname, 'log')
+    plot_map(plot_data, x_vals, y_vals, title, fname, 'log')
 
     # Plot total contributon
     plot_data = np.sum(data['contributon'][hz, :, :, :], 2)
     title = 'Contributon (Total)'
     fname = 'contributon_total.png'
-    plot_flux(plot_data, x_vals, y_vals, title, fname, 'log')
+    plot_map(plot_data, x_vals, y_vals, title, fname, 'log')
+
+    # Plot total forward current
+    plot_data = np.sum(data['current_fwd'][hz, :, :, :, :2], 2)
+    title = 'Forward Current (Total)'
+    fname = 'current_forward_total.png'
+    plot_quiver(plot_data, x_vals, y_vals, title, fname)
+
+    # Plot total adjoint current
+    plot_data = np.sum(data['current_adj'][hz, :, :, :, :2], 2)
+    title = 'Adjoint Current (Total)'
+    fname = 'current_adjoint_total.png'
+    plot_quiver(plot_data, x_vals, y_vals, title, fname)
 
     # Plots for the fast group (2) and thermal group (26)
-    for gx in [2, 26]:
-        gf = gx - g0
+    for igx in [2, 26]:
+        igf = igx - g0
 
-        plot_data = data['flux_fwd'][hz, :, :, gf]
-        title = 'Forward Flux (Group %u)' % (gx)
-        fname = 'flux_forward_g%02u.png'  % (gx)
-        plot_flux(plot_data, x_vals, y_vals, title, fname, 'log')
+        # Forward flux
+        plot_data = data['flux_fwd'][hz, :, :, igf]
+        title = 'Forward Flux (Group %u)' % (igx)
+        fname = 'flux_forward_g%02u.png'  % (igx)
+        plot_map(plot_data, x_vals, y_vals, title, fname, 'log')
 
-        plot_data = data['flux_adj'][hz, :, :, gf]
-        title = 'Adjoint Flux (Group %u)' % (gx)
-        fname = 'flux_adjoint_g%02u.png'  % (gx)
-        plot_flux(plot_data, x_vals, y_vals, title, fname, 'log')
+        # Adjoint flux
+        plot_data = data['flux_adj'][hz, :, :, igf]
+        title = 'Adjoint Flux (Group %u)' % (igx)
+        fname = 'flux_adjoint_g%02u.png'  % (igx)
+        plot_map(plot_data, x_vals, y_vals, title, fname, 'log')
 
-        plot_data = data['contributon'][hz, :, :, gf]
-        title = 'Contributon (Group %u)' % (gx)
-        fname = 'contributon_g%02u.png'  % (gx)
-        plot_flux(plot_data, x_vals, y_vals, title, fname, 'log')
+        # Contributon
+        plot_data = data['contributon'][hz, :, :, igf]
+        title = 'Contributon (Group %u)' % (igx)
+        fname = 'contributon_g%02u.png'  % (igx)
+        plot_map(plot_data, x_vals, y_vals, title, fname, 'log')
+
+        # Forward current
+        plot_data = data['current_fwd'][hz, :, :, igf, :2]
+        title = 'Forward Current (Group %u)' % (igx)
+        fname = 'current_forward_g%02u.png'  % (igx)
+        plot_quiver(plot_data, x_vals, y_vals, title, fname)
+
+        # Adjoint current
+        plot_data = data['current_adj'][hz, :, :, igf, :2]
+        title = 'Adjoint Current (Group %u)' % (igx)
+        fname = 'current_adjoint_g%02u.png'  % (igx)
+        plot_quiver(plot_data, x_vals, y_vals, title, fname)
 
     # Plot dR for all materials
     for im in range(nm):
@@ -97,15 +124,15 @@ def plot_all(data):
         title = (r'$\delta R$ (Angular) for Material %u (%s)' %
                  (im, data['mat_names'][im]))
         fname = 'dR_angular_%02u.png' % (im)
-        plot_flux(plot_data, x_vals, y_vals, title, fname, 'logplusminus')
+        plot_map(plot_data, x_vals, y_vals, title, fname, 'logplusminus')
     for im in range(nm):
         plot_data = data['dR_scalar'][im, hz, :, :]
         title = (r'$\delta R$ (Scalar) for Material %u (%s)' %
                  (im, data['mat_names'][im]))
         fname = 'dR_scalar_%02u.png' % (im)
-        plot_flux(plot_data, x_vals, y_vals, title, fname, 'logplusminus')
+        plot_map(plot_data, x_vals, y_vals, title, fname, 'logplusminus')
 
-def plot_flux(result, x_vals, y_vals, title, fname, fmt, mat_names=None):
+def plot_map(plot_data, x_vals, y_vals, title, fname, fmt, mat_names=None):
     plt.rcParams['font.size'       ] = 10.0
     plt.rcParams['font.family'     ] = 'serif'
     plt.rcParams['mathtext.default'] = 'regular'
@@ -130,8 +157,8 @@ def plot_flux(result, x_vals, y_vals, title, fname, fmt, mat_names=None):
                            np.arange(loglinthresh, logvmax + 1, 1)]
         tick_labels = (list(reversed(tick_labels_neg)) + [0] + tick_labels_pos)
     elif fmt == 'log':
-        result_min_nonzero = np.min(result[result != 0])
-        result_max_nonzero = np.max(result[result != 0])
+        result_min_nonzero = np.min(plot_data[plot_data != 0])
+        result_max_nonzero = np.max(plot_data[plot_data != 0])
         logvmin = np.floor(np.log10(result_min_nonzero))
         logvmax = np.ceil(np.log10(result_max_nonzero))
         vmin = 10**logvmin
@@ -143,7 +170,7 @@ def plot_flux(result, x_vals, y_vals, title, fname, fmt, mat_names=None):
                        np.arange(logvmin, logvmax + 1, 1)]
     elif fmt == 'lin':
         vmin = 0.0
-        vmax = np.max(result) * 1.1
+        vmax = np.max(plot_data) * 1.1
         norm = colors.Normalize(vmin=vmin, vmax=vmax)
         cmap = 'Reds'
     elif fmt == 'mats':
@@ -169,7 +196,7 @@ def plot_flux(result, x_vals, y_vals, title, fname, fmt, mat_names=None):
         plt.subplots_adjust(left=0.125, right=0.9)
 
     # Plot data
-    im = ax.pcolormesh(x_vals, y_vals, result, norm=norm, cmap=cmap)
+    im = ax.pcolormesh(x_vals, y_vals, plot_data, norm=norm, cmap=cmap)
 
     # Formatting
     ax.set_aspect('equal', 'box')
@@ -191,6 +218,41 @@ def plot_flux(result, x_vals, y_vals, title, fname, fmt, mat_names=None):
         cbar.ax.set_yticklabels(tick_labels)
         cbar.ax.tick_params(length=0)
         cbar.ax.invert_yaxis()
+
+    # Draw geometry
+    draw_geometry()
+
+    # Save figure
+    if not os.path.exists('images'): os.makedirs('images')
+    print('Writing images/%s to file' % (fname))
+    #plt.tight_layout()
+    plt.savefig('images/%s' % (fname))
+    plt.close()
+
+def plot_quiver(plot_data, x_vals, y_vals, title, fname):
+    plt.rcParams['font.size'       ] = 10.0
+    plt.rcParams['font.family'     ] = 'serif'
+    plt.rcParams['mathtext.default'] = 'regular'
+    plt.rcParams['axes.prop_cycle' ] = cycler(color=['k'])
+
+    fig, ax = plt.subplots(1, 1)
+    fig.set_size_inches(8, 6)
+    plt.subplots_adjust(left=0.125, right=0.9)
+
+    # Plot data
+    x_centers = 0.5 * (x_vals[:-1] + x_vals[1:])
+    y_centers = 0.5 * (y_vals[:-1] + y_vals[1:])
+    im = ax.quiver(x_centers, y_centers, plot_data[:, :, 0], plot_data[:, :, 1])
+
+    # Formatting
+    ax.set_aspect('equal', 'box')
+    ax.set_xlim([x_vals[0], x_vals[-1]])
+    ax.set_ylim([y_vals[0], y_vals[-1]])
+    ax.set_xticks(np.linspace(x_vals[0], x_vals[-1], 5))
+    ax.set_yticks(np.linspace(y_vals[0], y_vals[-1], 5))
+    ax.set_xlabel('x position [cm]')
+    ax.set_ylabel('y position [cm]')
+    ax.set_title(title)
 
     # Draw geometry
     draw_geometry()

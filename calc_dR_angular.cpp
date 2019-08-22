@@ -18,7 +18,7 @@ using std::chrono::duration;
 using std::chrono::duration_cast;
 using std::chrono::high_resolution_clock;
 
-NpyArray read_pickle(std::string fname) {
+NpyArray read_pickle(string fname) {
   cout << "Reading pickles/" << fname << ".npy from file" << endl;
   NpyArray pickle = npy_load("pickles/" + fname + ".npy");
   return pickle;
@@ -64,18 +64,18 @@ int main() {
   int g0 = mesh_g[0];
 
   // Allocate array for dR
-  multi_array<double, 4> dR{boost::extents[nm][nz][ny][nx]};
+  multi_array<double, 4> dR{extents[nm][nz][ny][nx]};
 
   // Calculate dR
   high_resolution_clock::time_point begin = high_resolution_clock::now();
   for (int im = 0; im < nm; im++) { // Material index
     cout << "Calculating dR for material " << im + 1 << " of " << nm << endl;
-    for (int iz = 0; iz < nz; iz++) {             // Z mesh index
-      for (int iy = 0; iy < ny; iy++) {           // Y mesh index
-        for (int ix = 0; ix < nx; ix++) {         // X mesh index
-          int i_mix = material_map[iz][iy][ix];   // Mixed material index
-          for (int ia = 0; ia < na; ia++) {       // Angle index
-            double qw = quad_weights[ia];         // Quadrature weight
+    for (int iz = 0; iz < nz; iz++) {                  // Z mesh index
+      for (int iy = 0; iy < ny; iy++) {                // Y mesh index
+        for (int ix = 0; ix < nx; ix++) {              // X mesh index
+          int i_mix = material_map[iz][iy][ix];        // Mixed material index
+          for (int ia = 0; ia < na; ia++) {            // Angle index
+            double qw = quad_weights[ia] / (4.0 * PI); // Quadrature weight
             for (int igf = 0; igf < ngf; igf++) { // Energy index (in flux data)
               int igx = igf + g0; // Energy index (in cross section data)
               // Total component of dHphi
@@ -90,8 +90,7 @@ int main() {
               }
               // dR
               double dHphi = dHphi_t + dHphi_s;
-              double dR_comp =
-                  -flux_adj[iz][iy][ix][ia][igf] * dHphi * qw / (4.0 * PI);
+              double dR_comp = -flux_adj[iz][iy][ix][ia][igf] * dHphi * qw;
               dR[im][iz][iy][ix] += dR_comp;
             }
           }
