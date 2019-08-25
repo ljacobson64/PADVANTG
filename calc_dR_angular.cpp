@@ -31,6 +31,7 @@ int main() {
   NpyArray quad_weights_np = read_pickle("quadrature_weights");
   NpyArray sigma_t_pert_np = read_pickle("sigma_t_pert");
   NpyArray sigma_s_pert_np = read_pickle("sigma_s_pert");
+  NpyArray rev_ang_map_np = read_pickle("reverse_angle_map");
   NpyArray material_map_np = read_pickle("material_map");
   NpyArray mesh_g_np = read_pickle("mesh_g");
 
@@ -55,6 +56,8 @@ int main() {
                                           extents[n_mix][nm][ngx]};
   multi_array_ref<double, 4> sigma_s_pert{sigma_s_pert_np.data<double>(),
                                           extents[n_mix][nm][ngx][ngx]};
+  multi_array_ref<long long int, 1> rev_ang_map{
+      rev_ang_map_np.data<long long int>(), extents[na]};
   multi_array_ref<long long int, 3> material_map{
       material_map_np.data<long long int>(), extents[nz][ny][nx]};
   multi_array_ref<long long int, 1> mesh_g{mesh_g_np.data<long long int>(),
@@ -76,6 +79,7 @@ int main() {
           int i_mix = material_map[iz][iy][ix];        // Mixed material index
           for (int ia = 0; ia < na; ia++) {            // Angle index
             double qw = quad_weights[ia] / (4.0 * PI); // Quadrature weight
+            int iaa = rev_ang_map[ia];                 // Reverse angle index
             for (int igf = 0; igf < ngf; igf++) { // Energy index (in flux data)
               int igx = igf + g0; // Energy index (in cross section data)
               // Total component of dHphi
@@ -90,7 +94,7 @@ int main() {
               }
               // dR
               double dHphi = dHphi_t + dHphi_s;
-              double dR_comp = -flux_adj[iz][iy][ix][ia][igf] * dHphi * qw;
+              double dR_comp = -flux_adj[iz][iy][ix][iaa][igf] * dHphi * qw;
               dR[im][iz][iy][ix] += dR_comp;
             }
           }
