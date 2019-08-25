@@ -56,7 +56,7 @@ def calculate(data):
     g1 = data['mesh_g'][-1]
 
     # Calculate reverse angle map
-    data['reverse_angle_map'] = np.zeros(na, dtype=np.int64)
+    data['reverse_angle_map'] = np.zeros(na, dtype=np.int32)
     for i in xrange(na):
         ix = data['angles'][i, 0]
         iy = data['angles'][i, 1]

@@ -34,8 +34,6 @@ def read_hdf5():
         elif key in ['angular_flux']: new_key = 'angular_flux_fwd'
         else: continue
         data[new_key] = hf.get(key)[()]
-        if data[new_key].dtype == np.int32:
-            data[new_key] = np.array(data[new_key], dtype=np.int64)
 
     # Read HDF5 file containing adjoint flux
     fname = 'adj_solution/denovo_adjoint.h5'

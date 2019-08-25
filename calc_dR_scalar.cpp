@@ -51,10 +51,9 @@ int main() {
                                           extents[n_mix][nm][ngx]};
   multi_array_ref<double, 4> sigma_s_pert{sigma_s_pert_np.data<double>(),
                                           extents[n_mix][nm][ngx][ngx]};
-  multi_array_ref<long long int, 3> material_map{
-      material_map_np.data<long long int>(), extents[nz][ny][nx]};
-  multi_array_ref<long long int, 1> mesh_g{mesh_g_np.data<long long int>(),
-                                           extents[ngf]};
+  multi_array_ref<int, 3> material_map{material_map_np.data<int>(),
+                                       extents[nz][ny][nx]};
+  multi_array_ref<int, 1> mesh_g{mesh_g_np.data<int>(), extents[ngf]};
 
   // First energy group
   int g0 = mesh_g[0];
