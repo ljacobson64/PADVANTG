@@ -94,22 +94,17 @@ def calculate(data):
     # Calculate scalar flux
     print('Calculating scalar flux')
     qw = data['quadrature_weights'][None, None, None, :, None] / (4.0 * np.pi)
-    data['flux_fwd'] = np.sum(data['angular_flux_fwd'] * qw, 3)
-    data['flux_adj'] = np.sum(data['angular_flux_adj'] * qw, 3)
+    data['scalar_flux_fwd'] = np.sum(data['angular_flux_fwd'] * qw, 3)
+    data['scalar_flux_adj'] = np.sum(data['angular_flux_adj'] * qw, 3)
 
     # Calculate contributon
     print('Calculating contributon')
     if use_angular:
-        data['contributon'] = np.sum(data['angular_flux_fwd'] *
+        data['scalar_flux_con'] = np.sum(data['angular_flux_fwd'] *
             data['angular_flux_adj'][:, :, :, data['reverse_angle_map'], :] *
-            qw, 3)
-    else: data['contributon'] = data['flux_fwd'] * data['flux_adj']
-
-    # Calculate energy-integrated flux
-    print('Calculating energy-integrated flux')
-    data['flux_fwd_int'   ] = np.sum(data['flux_fwd'   ], 3)
-    data['flux_adj_int'   ] = np.sum(data['flux_adj'   ], 3)
-    data['contributon_int'] = np.sum(data['contributon'], 3)
+            qw * qw, 3)
+    else: data['scalar_flux_con'] = (data['scalar_flux_fwd'] *
+                                     data['scalar_flux_adj'])
 
     # Calculate cross sections for mixed materials
     print('Calculating cross sections for mixed materials')

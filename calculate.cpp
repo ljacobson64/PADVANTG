@@ -1,11 +1,10 @@
 #include <chrono>
-#include <cstdlib>
 
 #include "boost/multi_array.hpp"
 #include "cnpy.h"
 
 #define PI 3.14159265358979323846
-#define FOURPI 4.0 * PI
+#define FOURPI (4.0 * PI)
 
 using boost::extents;
 using boost::multi_array;
@@ -137,7 +136,6 @@ int main() {
       double jz = angles[ja][2];
       if (ix == -jx and iy == -jy and iz == -jz) {
         reverse_angle_map[ia] = ja;
-        cout << ia << " " << ja << endl;
         break;
       }
     }
@@ -366,7 +364,7 @@ int main() {
   cout << " took " << elapsed << " seconds" << endl;
   cout.flush();
 
-  // Write pickles
+  // Write pickles to file
   write_pickle("reverse_angle_map", reverse_angle_map);
   write_pickle("source", source);
   write_pickle("response", response);
