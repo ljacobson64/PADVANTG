@@ -24,7 +24,7 @@ def read_hdf5():
     # Read HDF5 file containing forward flux
     fname = 'fwd_solution/denovo_forward.h5'
     print('Reading %s from file' % (fname))
-    hf = h5py.File(fname,'r')
+    hf = h5py.File(fname, 'r')
 
     # Load forward data
     data = {}

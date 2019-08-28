@@ -24,8 +24,8 @@ def read_pickles():
     return data
 
 def plot_all(data):
-    nm = data['mix_table'   ].shape[1]  # Number of pure materials
-    nz = data['flux_fwd_int'].shape[0]  # Number of Z intervals
+    nm = data['mix_table'      ].shape[1]  # Number of pure materials
+    nz = data['scalar_flux_fwd'].shape[0]  # Number of Z intervals
     
     g0 = data['mesh_g'][0]  # First energy group
 
@@ -57,39 +57,39 @@ def plot_all(data):
     plot_map(plot_data, x_vals, y_vals, title, fname, 'lin')
 
     # Plot total forward flux
-    plot_data = np.sum(data['flux_fwd'][hz, :, :, :], 2)
+    plot_data = np.sum(data['scalar_flux_fwd'][hz, :, :, :], 2)
     title = 'Forward Flux (Total)'
-    fname = 'flux_forward_total.png'
+    fname = 'scalar_flux_fwd_total.png'
     plot_map(plot_data, x_vals, y_vals, title, fname, 'log')
 
     # Plot total adjoint flux
-    plot_data = np.sum(data['flux_adj'][hz, :, :, :], 2)
+    plot_data = np.sum(data['scalar_flux_adj'][hz, :, :, :], 2)
     title = 'Adjoint Flux (Total)'
-    fname = 'flux_adjoint_total.png'
+    fname = 'scalar_flux_adj_total.png'
     plot_map(plot_data, x_vals, y_vals, title, fname, 'log')
 
     # Plot total contributon flux
-    plot_data = np.sum(data['contributon'][hz, :, :, :], 2)
+    plot_data = np.sum(data['scalar_flux_con'][hz, :, :, :], 2)
     title = 'Contributon Flux (Total)'
-    fname = 'flux_contrib_total.png'
+    fname = 'scalar_flux_con_total.png'
     plot_map(plot_data, x_vals, y_vals, title, fname, 'log')
 
     # Plot total forward current
     plot_data = np.sum(data['current_fwd'][hz, :, :, :, :2], 2)
     title = 'Forward Current (Total)'
-    fname = 'current_forward_total.png'
+    fname = 'current_fwd_total.png'
     plot_quiver(plot_data, x_vals, y_vals, title, fname)
 
     # Plot total adjoint current
     plot_data = np.sum(data['current_adj'][hz, :, :, :, :2], 2)
     title = 'Adjoint Current (Total)'
-    fname = 'current_adjoint_total.png'
+    fname = 'current_adj_total.png'
     plot_quiver(plot_data, x_vals, y_vals, title, fname)
 
     # Plot total contributon current
-    plot_data = np.sum(data['current_contrib'][hz, :, :, :, :2], 2)
+    plot_data = np.sum(data['current_con'][hz, :, :, :, :2], 2)
     title = 'Contributon Current (Total)'
-    fname = 'current_contrib_total.png'
+    fname = 'current_con_total.png'
     plot_quiver(plot_data, x_vals, y_vals, title, fname)
 
     # Plots for the fast group (2) and thermal group (26)
@@ -97,39 +97,39 @@ def plot_all(data):
         igf = igx - g0
 
         # Forward flux
-        plot_data = data['flux_fwd'][hz, :, :, igf]
+        plot_data = data['scalar_flux_fwd'][hz, :, :, igf]
         title = 'Forward Flux (Group %u)' % (igx)
-        fname = 'flux_forward_g%02u.png'  % (igx)
+        fname = 'scalar_flux_fwd_g%02u.png'  % (igx)
         plot_map(plot_data, x_vals, y_vals, title, fname, 'log')
 
         # Adjoint flux
-        plot_data = data['flux_adj'][hz, :, :, igf]
+        plot_data = data['scalar_flux_adj'][hz, :, :, igf]
         title = 'Adjoint Flux (Group %u)' % (igx)
-        fname = 'flux_adjoint_g%02u.png'  % (igx)
+        fname = 'scalar_flux_adj_g%02u.png'  % (igx)
         plot_map(plot_data, x_vals, y_vals, title, fname, 'log')
 
         # Contributon flux
-        plot_data = data['contributon'][hz, :, :, igf]
+        plot_data = data['scalar_flux_con'][hz, :, :, igf]
         title = 'Contributon Flux (Group %u)' % (igx)
-        fname = 'flux_contrib_g%02u.png'  % (igx)
+        fname = 'scalar_flux_con_g%02u.png'  % (igx)
         plot_map(plot_data, x_vals, y_vals, title, fname, 'log')
 
         # Forward current
         plot_data = data['current_fwd'][hz, :, :, igf, :2]
         title = 'Forward Current (Group %u)' % (igx)
-        fname = 'current_forward_g%02u.png'  % (igx)
+        fname = 'current_fwd_g%02u.png'  % (igx)
         plot_quiver(plot_data, x_vals, y_vals, title, fname)
 
         # Adjoint current
         plot_data = data['current_adj'][hz, :, :, igf, :2]
         title = 'Adjoint Current (Group %u)' % (igx)
-        fname = 'current_adjoint_g%02u.png'  % (igx)
+        fname = 'current_adj_g%02u.png'  % (igx)
         plot_quiver(plot_data, x_vals, y_vals, title, fname)
 
         # Contributon current
-        plot_data = data['current_contrib'][hz, :, :, igf, :2]
+        plot_data = data['current_con'][hz, :, :, igf, :2]
         title = 'Contributon Current (Group %u)' % (igx)
-        fname = 'current_contrib_g%02u.png'  % (igx)
+        fname = 'current_con_g%02u.png'  % (igx)
         plot_quiver(plot_data, x_vals, y_vals, title, fname)
 
     # Plot dR for all materials
