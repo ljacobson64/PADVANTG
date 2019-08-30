@@ -328,29 +328,32 @@ int main() {
   cout.flush();
   begin = high_resolution_clock::now();
   multi_array<double, 4> dR_angular{extents[nm][nz][ny][nx]};
-  for (int im = 0; im < nm; im++) {                      // Material index
-    for (int iz = 0; iz < nz; iz++) {                    // Z mesh index
-      for (int iy = 0; iy < ny; iy++) {                  // Y mesh index
-        for (int ix = 0; ix < nx; ix++) {                // X mesh index
-          int i_mix = material_map[iz][iy][ix];          // Mixed material index
-          for (int ia = 0; ia < na; ia++) {              // Angle index
-            double qw = quadrature_weights[ia] / FOURPI; // Quadrature weight
-            int ja = reverse_angle_map[ia];              // Reverse angle index
-            for (int igf = 0; igf < ngf; igf++) { // Energy index (in flux data)
-              int igx = igf + g0; // Energy index (in cross section data)
-              double affwd = angular_flux_fwd[iz][iy][ix][ia][igf] * qw;
-              double afadj = angular_flux_adj[iz][iy][ix][ia][igf] * qw;
-              double sffwd = scalar_flux_fwd[iz][iy][ix][igf];
-              // Total component of dHphi
-              double dHphi_t = sigma_t_pert[i_mix][im][igx] * affwd;
-              // Scattering component of dHphi (assume isotropic scattering)
-              double dHphi_s = 0.0;
-              for (int jgf = 0; jgf < ngf; jgf++) {
-                int jgx = jgf + g0;
-                dHphi_s += -sigma_s_pert[i_mix][im][igx][jgx] * sffwd;
-              }
-              double dHphi = dHphi_t + dHphi_s;
-              double dR_comp = -afadj * dHphi;
+  for (int im = 0; im < nm; im++) {             // Material index
+    for (int iz = 0; iz < nz; iz++) {           // Z mesh index
+      for (int iy = 0; iy < ny; iy++) {         // Y mesh index
+        for (int ix = 0; ix < nx; ix++) {       // X mesh index
+          int i_mix = material_map[iz][iy][ix]; // Mixed material index
+          for (int igf = 0; igf < ngf; igf++) { // Energy index (in flux data)
+            int igx = igf + g0; // Energy index (in cross section data)
+            double sffwd =
+                scalar_flux_fwd[iz][iy][ix][igf]; // Scalar forward flux
+            // Scattering component of dHphi (assume isotropic scattering)
+            double dHphi_s = 0.0;
+            for (int jgf = 0; jgf < ngf; jgf++) {
+              int jgx = jgf + g0;
+              dHphi_s += -sigma_s_pert[i_mix][im][igx][jgx] * sffwd;
+            }
+            for (int ia = 0; ia < na; ia++) { // Angle index
+              int ja = reverse_angle_map[ia]; // Reverse angle index
+              double qw = quadrature_weights[ia] / FOURPI; // Quadrature weight
+              double affwd = angular_flux_fwd[iz][iy][ix][ia][igf] *
+                             qw; // Angular forward flux
+              double afadj = angular_flux_adj[iz][iy][ix][ja][igf] *
+                             qw; // Angular adjoint flux
+              double dHphi_t = sigma_t_pert[i_mix][im][igx] *
+                               affwd;           // Total component of dHphi
+              double dHphi = dHphi_t + dHphi_s; // dHphi
+              double dR_comp = -afadj * dHphi;  // dR component
               dR_angular[im][iz][iy][ix] += dR_comp;
             }
           }
