@@ -154,16 +154,19 @@ def plot_map(plot_data, x_vals, y_vals, title, fname, fmt, mat_names=None):
 
     # Color scale
     if fmt == 'logplusminus':
-        logvmax = 6
-        loglinthresh = logvmax - 8
+        logvmax = 8
+        span = 8
+        loglinthresh = logvmax - span
         vmax = 10**logvmax
         vmin = -vmax
         linthresh = 10**loglinthresh
         norm = colors.SymLogNorm(vmin=vmin, vmax=vmax,
                                  linthresh=linthresh, linscale=1.0)
         cmap='RdBu_r'
-        ticks_neg = [-10**x for x in np.linspace(loglinthresh, logvmax, 9)]
-        ticks_pos = [ 10**x for x in np.linspace(loglinthresh, logvmax, 9)]
+        ticks_neg = [-10**x for x in
+                     np.linspace(loglinthresh, logvmax, span + 1)]
+        ticks_pos = [10**x for x in
+                     np.linspace(loglinthresh, logvmax, span + 1)]
         ticks = list(reversed(ticks_neg)) + [0.0] + ticks_pos
         tick_labels_neg = [r'$-10^{%u}$' % (x) for x in
                            np.arange(loglinthresh, logvmax + 1, 1)]
