@@ -227,8 +227,8 @@ int main() {
   cout << " took " << elapsed << " seconds" << endl;
   cout.flush();
 
-  // Calculate perturbed cross sections
-  cout << "Calculating perturbed cross sections...";
+  // Calculate perturbations in cross sections
+  cout << "Calculating perturbations in cross sections...";
   cout.flush();
   begin = high_resolution_clock::now();
   multi_array<double, 3> sigma_t_pert{extents[n_mix][nm][ngx]};
@@ -297,23 +297,34 @@ int main() {
       for (int iy = 0; iy < ny; iy++) {         // Y mesh index
         for (int ix = 0; ix < nx; ix++) {       // X mesh index
           int i_mix = material_map[iz][iy][ix]; // Mixed material index
+          // Total component of dR
+          double dR_t = 0.0;
           for (int igf = 0; igf < ngf; igf++) { // Energy index (in flux data)
             int igx = igf + g0; // Energy index (in cross section data)
-            double sffwd = scalar_flux_fwd[iz][iy][ix][igf];
-            double sfadj = scalar_flux_adj[iz][iy][ix][igf];
-            // Total component of dHphi
-            double dHphi_t = sigma_t_pert[i_mix][im][igx] * sffwd;
-            // Scattering component of dHphi
-            double dHphi_s = 0.0;
-            for (int jgf = 0; jgf < ngf; jgf++) {
-              int jgx = jgf + g0;
-              dHphi_s += -sigma_s_pert[i_mix][im][igx][jgx] *
-                         scalar_flux_fwd[iz][iy][ix][jgf];
-            }
-            double dHphi = dHphi_t + dHphi_s;
-            double dR_comp = -sfadj * dHphi;
-            dR_scalar[im][iz][iy][ix] += dR_comp;
+            // Scalar contributon flux
+            double sfc = scalar_flux_fwd[iz][iy][ix][igf] *
+                         scalar_flux_adj[iz][iy][ix][igf];
+            // Perturbation in total cross section
+            double dst = sigma_t_pert[i_mix][im][igx];
+            dR_t += sfc * dst;
           }
+          // Scattering component of dR
+          double dR_s = 0.0;
+          for (int igf = 0; igf < ngf; igf++) { // Energy index (in flux data)
+            int igx = igf + g0; // Energy index (in cross section data)
+            // Scalar adjoint flux (at E)
+            double sfa = scalar_flux_adj[iz][iy][ix][igf];
+            for (int jgf = 0; jgf < ngf; jgf++) { // E' index (in flux data)
+              int jgx = jgf + g0; // E' index (in cross section data)
+              // Perturbation in scattering cross section (E' -> E)
+              double dss = sigma_s_pert[i_mix][im][igx][jgx];
+              // Scalar forward flux (at E')
+              double sff = scalar_flux_fwd[iz][iy][ix][jgf];
+              dR_s += dss * sff * sfa;
+            }
+          }
+          // Calculate dR
+          dR_scalar[im][iz][iy][ix] = dR_s - dR_t;
         }
       }
     }
@@ -324,7 +335,7 @@ int main() {
   cout.flush();
 
   // Calculate dR using angular flux
-  cout << "Calculating dR using angular flux... 0";
+  cout << "Calculating dR using angular flux..."; // 0";
   cout.flush();
   begin = high_resolution_clock::now();
   multi_array<double, 4> dR_angular{extents[nm][nz][ny][nx]};
@@ -333,35 +344,38 @@ int main() {
       for (int iy = 0; iy < ny; iy++) {         // Y mesh index
         for (int ix = 0; ix < nx; ix++) {       // X mesh index
           int i_mix = material_map[iz][iy][ix]; // Mixed material index
+          // Total component of dR
+          double dR_t = 0.0;
           for (int igf = 0; igf < ngf; igf++) { // Energy index (in flux data)
             int igx = igf + g0; // Energy index (in cross section data)
-            double sffwd =
-                scalar_flux_fwd[iz][iy][ix][igf]; // Scalar forward flux
-            // Scattering component of dHphi (assume isotropic scattering)
-            double dHphi_s = 0.0;
-            for (int jgf = 0; jgf < ngf; jgf++) {
-              int jgx = jgf + g0;
-              dHphi_s += -sigma_s_pert[i_mix][im][igx][jgx] * sffwd;
-            }
-            for (int ia = 0; ia < na; ia++) { // Angle index
-              int ja = reverse_angle_map[ia]; // Reverse angle index
-              double qw = quadrature_weights[ia] / FOURPI; // Quadrature weight
-              double affwd = angular_flux_fwd[iz][iy][ix][ia][igf] *
-                             qw; // Angular forward flux
-              double afadj = angular_flux_adj[iz][iy][ix][ja][igf] *
-                             qw; // Angular adjoint flux
-              double dHphi_t = sigma_t_pert[i_mix][im][igx] *
-                               affwd;           // Total component of dHphi
-              double dHphi = dHphi_t + dHphi_s; // dHphi
-              double dR_comp = -afadj * dHphi;  // dR component
-              dR_angular[im][iz][iy][ix] += dR_comp;
+            // Scalar contributon flux
+            double sfc = scalar_flux_con[iz][iy][ix][igf];
+            // Perturbation in total cross section
+            double dst = sigma_t_pert[i_mix][im][igx];
+            dR_t += sfc * dst;
+          }
+          // Scattering component of dR
+          double dR_s = 0.0;
+          for (int igf = 0; igf < ngf; igf++) { // Energy index (in flux data)
+            int igx = igf + g0; // Energy index (in cross section data)
+            // Scalar adjoint flux (at E)
+            double sfa = scalar_flux_adj[iz][iy][ix][igf];
+            for (int jgf = 0; jgf < ngf; jgf++) { // E' index (in flux data)
+              int jgx = jgf + g0; // E' index (in cross section data)
+              // Perturbation in scattering cross section (E' -> E)
+              double dss = sigma_s_pert[i_mix][im][igx][jgx];
+              // Scalar forward flux (at E')
+              double sff = scalar_flux_fwd[iz][iy][ix][jgf];
+              dR_s += dss * sff * sfa;
             }
           }
+          // Calculate dR
+          dR_angular[im][iz][iy][ix] = dR_s - dR_t;
         }
       }
     }
-    cout << " " << (100 * (im + 1)) / nm;
-    cout.flush();
+    // cout << " " << (100 * (im + 1)) / nm;
+    // cout.flush();
   }
   end = high_resolution_clock::now();
   elapsed = duration_cast<duration<double>>(end - begin).count();
