@@ -134,16 +134,9 @@ def plot_all(data):
 
     # Plot dR for all materials
     for im in range(nm):
-        plot_data = data['dR_angular'][im, hz, :, :]
-        title = (r'$\delta R$ (Angular) for Material %u (%s)' %
-                 (im, data['mat_names'][im]))
-        fname = 'dR_angular_%02u.png' % (im)
-        plot_map(plot_data, x_vals, y_vals, title, fname, 'logplusminus')
-    for im in range(nm):
-        plot_data = data['dR_scalar'][im, hz, :, :]
-        title = (r'$\delta R$ (Scalar) for Material %u (%s)' %
-                 (im, data['mat_names'][im]))
-        fname = 'dR_scalar_%02u.png' % (im)
+        plot_data = data['dR'][im, hz, :, :]
+        title = r'$\delta R$ for Material %u (%s)' % (im, data['mat_names'][im])
+        fname = 'dR_%02u.png' % (im)
         plot_map(plot_data, x_vals, y_vals, title, fname, 'logplusminus')
 
 def plot_map(plot_data, x_vals, y_vals, title, fname, fmt, mat_names=None):

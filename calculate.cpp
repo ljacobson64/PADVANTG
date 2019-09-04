@@ -287,58 +287,11 @@ int main() {
   cout << " took " << elapsed << " seconds" << endl;
   cout.flush();
 
-  // Calculate dR using scalar flux
-  cout << "Calculating dR using scalar flux...";
-  cout.flush();
-  begin = high_resolution_clock::now();
-  multi_array<double, 4> dR_scalar{extents[nm][nz][ny][nx]};
-  for (int im = 0; im < nm; im++) {             // Material index
-    for (int iz = 0; iz < nz; iz++) {           // Z mesh index
-      for (int iy = 0; iy < ny; iy++) {         // Y mesh index
-        for (int ix = 0; ix < nx; ix++) {       // X mesh index
-          int i_mix = material_map[iz][iy][ix]; // Mixed material index
-          // Total component of dR
-          double dR_t = 0.0;
-          for (int igf = 0; igf < ngf; igf++) { // Energy index (in flux data)
-            int igx = igf + g0; // Energy index (in cross section data)
-            // Scalar contributon flux
-            double sfc = scalar_flux_fwd[iz][iy][ix][igf] *
-                         scalar_flux_adj[iz][iy][ix][igf];
-            // Perturbation in total cross section
-            double dst = sigma_t_pert[i_mix][im][igx];
-            dR_t += sfc * dst;
-          }
-          // Scattering component of dR
-          double dR_s = 0.0;
-          for (int igf = 0; igf < ngf; igf++) { // Energy index (in flux data)
-            int igx = igf + g0; // Energy index (in cross section data)
-            // Scalar adjoint flux (at E)
-            double sfa = scalar_flux_adj[iz][iy][ix][igf];
-            for (int jgf = 0; jgf < ngf; jgf++) { // E' index (in flux data)
-              int jgx = jgf + g0; // E' index (in cross section data)
-              // Perturbation in scattering cross section (E' -> E)
-              double dss = sigma_s_pert[i_mix][im][igx][jgx];
-              // Scalar forward flux (at E')
-              double sff = scalar_flux_fwd[iz][iy][ix][jgf];
-              dR_s += dss * sff * sfa;
-            }
-          }
-          // Calculate dR
-          dR_scalar[im][iz][iy][ix] = dR_s - dR_t;
-        }
-      }
-    }
-  }
-  end = high_resolution_clock::now();
-  elapsed = duration_cast<duration<double>>(end - begin).count();
-  cout << " took " << elapsed << " seconds" << endl;
-  cout.flush();
-
   // Calculate dR using angular flux
-  cout << "Calculating dR using angular flux..."; // 0";
+  cout << "Calculating dR..."; // 0";
   cout.flush();
   begin = high_resolution_clock::now();
-  multi_array<double, 4> dR_angular{extents[nm][nz][ny][nx]};
+  multi_array<double, 4> dR{extents[nm][nz][ny][nx]};
   for (int im = 0; im < nm; im++) {             // Material index
     for (int iz = 0; iz < nz; iz++) {           // Z mesh index
       for (int iy = 0; iy < ny; iy++) {         // Y mesh index
@@ -370,7 +323,7 @@ int main() {
             }
           }
           // Calculate dR
-          dR_angular[im][iz][iy][ix] = dR_s - dR_t;
+          dR[im][iz][iy][ix] = dR_s - dR_t;
         }
       }
     }
@@ -396,8 +349,7 @@ int main() {
   write_pickle("current_fwd", current_fwd);
   write_pickle("current_adj", current_adj);
   write_pickle("current_con", current_con);
-  write_pickle("dR_scalar", dR_scalar);
-  write_pickle("dR_angular", dR_angular);
+  write_pickle("dR", dR);
 
   return 0;
 }
