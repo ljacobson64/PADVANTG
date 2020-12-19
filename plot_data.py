@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import os
 import copy
@@ -10,6 +10,37 @@ from cycler import cycler
 
 from draw_geom import draw_geometry
 from mcnp_colors import mcnp_colors as MC
+
+small_plots = True
+if small_plots:
+    bbox_inches = 'tight'
+    font_size = 16.0
+else:
+    bbox_inches = None
+    font_size = 10.0
+
+plt.rcParams['font.size'       ] = font_size
+plt.rcParams['font.family'     ] = 'serif'
+plt.rcParams['mathtext.default'] = 'regular'
+
+mat_names_short = {
+    'void'                            : 'Void'        ,
+    'Air (Dry, Near Sea Level)'       : 'Air'         ,
+    'Aluminum, Alloy 6061-O'          : 'Aluminum'    ,
+    'Beryllium'                       : 'Beryllium'   ,
+    'Beryllium Oxide'                 : 'BeO'         ,
+    'Boron'                           : 'Boron'       ,
+    'Carbon, Graphite (Reactor Grade)': 'Graphite'    ,
+    'Concrete, Regular'               : 'Concrete'    ,
+    'Copper'                          : 'Copper'      ,
+    'Gadolinium'                      : 'Gadolinium'  ,
+    'Iron'                            : 'Iron'        ,
+    'Polyethylene, Borated'           : 'Borated HDPE',
+    'Polyethylene, Non-borated'       : 'HDPE'        ,
+    'Water, Heavy'                    : 'Heavy Water' ,
+    'Water, Liquid'                   : 'Water'       ,
+    'Zircaloy-4'                      : 'Zircaloy-4'  ,
+    'Uranium-235'                     : 'Uranium-235' }
 
 def main():
     data = read_pickles()
@@ -26,16 +57,19 @@ def read_pickles():
 def plot_all(data):
     nm = data['mix_table'      ].shape[1]  # Number of pure materials
     nz = data['scalar_flux_fwd'].shape[0]  # Number of Z intervals
-    
+
     g0 = data['mesh_g'][0]  # First energy group
 
     x_vals = data['mesh_x']  # Horizontal direction
     y_vals = data['mesh_y']  # Vertical direction
-    
-    hz = nz / 2  # Use the middle Z slice
+
+    hz = nz // 2  # Use the middle Z slice
 
     # Plot spectra
     plot_spectra(data['source_spectrum'], data['response_spectrum'])
+
+    # All future drawn lines should be black
+    plt.rcParams['axes.prop_cycle' ] = cycler(color=['k'])
 
     # Plot material map
     plot_data = data['material_map'][hz, :, :]
@@ -92,8 +126,8 @@ def plot_all(data):
     fname = 'current_con_total.png'
     plot_quiver(plot_data, x_vals, y_vals, title, fname)
 
-    # Plots for the fast group (2) and thermal group (26)
-    for igx in [2, 26]:
+    # Plots for the fast group (2) and thermal group (25)
+    for igx in [2, 25]:
         igf = igx - g0
 
         # Forward flux
@@ -135,16 +169,12 @@ def plot_all(data):
     # Plot dR for all materials
     for im in range(nm):
         plot_data = data['dR'][im, hz, :, :]
-        title = r'$\delta R$ for Material %u (%s)' % (im, data['mat_names'][im])
+        title = (r'$\delta R$ for %s' %
+                 (mat_names_short[data['mat_names'][im].decode()]))
         fname = 'dR_%02u.png' % (im)
         plot_map(plot_data, x_vals, y_vals, title, fname, 'logplusminus')
 
 def plot_map(plot_data, x_vals, y_vals, title, fname, fmt, mat_names=None):
-    plt.rcParams['font.size'       ] = 10.0
-    plt.rcParams['font.family'     ] = 'serif'
-    plt.rcParams['mathtext.default'] = 'regular'
-    plt.rcParams['axes.prop_cycle' ] = cycler(color=['k'])
-
     # Color scale
     if fmt == 'logplusminus':
         logvmax = 8
@@ -186,17 +216,20 @@ def plot_map(plot_data, x_vals, y_vals, title, fname, fmt, mat_names=None):
         cmap = 'Reds'
     elif fmt == 'mats':
         with open('com_1', 'r') as reader: lines = reader.readlines()
-        CL = [MC['white']]
-        for line in lines:
-            if not line.startswith('shade'): continue
-            tokens = line.split()
-            CL.append(MC[tokens[2]])
+        unique_vals = np.unique(plot_data)
+        for i, unique_val in enumerate(unique_vals):
+            plot_data[np.where(plot_data == unique_val)] = i
+        color_strs = (['white'] +
+                      [x.split()[2] for x in lines if x.startswith('shade')])
+        color_strs = [x for i, x in enumerate(color_strs) if i in unique_vals]
+        CL = [MC[x] for x in color_strs]
         vmin = 0
         vmax = len(CL)
         norm = colors.Normalize(vmin=vmin, vmax=vmax)
         cmap = colors.ListedColormap(CL)
         ticks = np.linspace(0.5, vmax - 0.5, len(CL))
-        tick_labels = list(mat_names)
+        tick_labels = [mat_names_short[x.decode()]
+                       for x in mat_names[unique_vals]]
 
     fig, ax = plt.subplots(1, 1)
     if 'mats' in fmt:
@@ -236,16 +269,10 @@ def plot_map(plot_data, x_vals, y_vals, title, fname, fmt, mat_names=None):
     # Save figure
     if not os.path.exists('images'): os.makedirs('images')
     print('Writing images/%s to file' % (fname))
-    #plt.tight_layout()
-    plt.savefig('images/%s' % (fname))
+    plt.savefig('images/%s' % (fname), bbox_inches=bbox_inches)
     plt.close()
 
 def plot_quiver(plot_data, x_vals, y_vals, title, fname):
-    plt.rcParams['font.size'       ] = 10.0
-    plt.rcParams['font.family'     ] = 'serif'
-    plt.rcParams['mathtext.default'] = 'regular'
-    plt.rcParams['axes.prop_cycle' ] = cycler(color=['k'])
-
     fig, ax = plt.subplots(1, 1)
     fig.set_size_inches(8, 6)
     plt.subplots_adjust(left=0.125, right=0.9)
@@ -271,15 +298,10 @@ def plot_quiver(plot_data, x_vals, y_vals, title, fname):
     # Save figure
     if not os.path.exists('images'): os.makedirs('images')
     print('Writing images/%s to file' % (fname))
-    #plt.tight_layout()
-    plt.savefig('images/%s' % (fname))
+    plt.savefig('images/%s' % (fname), bbox_inches=bbox_inches)
     plt.close()
 
 def plot_spectra(source, response):
-    plt.rcParams['font.size'       ] = 10.0
-    plt.rcParams['font.family'     ] = 'serif'
-    plt.rcParams['mathtext.default'] = 'regular'
-
     fig, ax = plt.subplots(1, 1)
     fig.set_size_inches(8, 6)
 
@@ -294,14 +316,14 @@ def plot_spectra(source, response):
     ax.set_xlabel('Energy group')
     ax.set_ylabel('Magnitude')
     ax.set_title('Source and Response Energy Spectra')
+    ax.grid()
     ax.legend()
 
     # Save figure
     if not os.path.exists('images'): os.makedirs('images')
     fname = 'spectra_lin.png'
     print('Writing images/%s to file' % (fname))
-    #plt.tight_layout()
-    plt.savefig('images/%s' % (fname))
+    plt.savefig('images/%s' % (fname), bbox_inches=bbox_inches)
 
     # Log scale
     ax.set_yscale('log')
@@ -309,8 +331,7 @@ def plot_spectra(source, response):
     # Save figure
     fname = 'spectra_log.png'
     print('Writing images/%s to file' % (fname))
-    #plt.tight_layout()
-    plt.savefig('images/%s' % (fname))
+    plt.savefig('images/%s' % (fname), bbox_inches=bbox_inches)
 
     plt.close()
 

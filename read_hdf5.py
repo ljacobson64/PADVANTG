@@ -1,5 +1,6 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
+import os
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 import numpy as np
@@ -16,6 +17,7 @@ def main():
               (key, data[key].dtype, data[key].shape, data[key].size))
 
 def write_pickle(data, key):
+    if not os.path.isdir('pickles'): os.mkdir('pickles')
     fname = 'pickles/%s.npy' % (key)
     print('Writing %s to file' % (fname))
     np.save(fname, data[key])
