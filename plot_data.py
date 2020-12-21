@@ -73,6 +73,7 @@ def plot_all(data):
 
     # Plot material map
     plot_data = data['material_map'][hz, :, :]
+    plot_mask = np.where(plot_data != 14)
     title = 'Material Map'
     fname = 'material_map.png'
     plot_map(plot_data, x_vals, y_vals, title, fname, 'mats',
@@ -172,9 +173,17 @@ def plot_all(data):
         title = (r'$\delta R$ for %s' %
                  (mat_names_short[data['mat_names'][im].decode()]))
         fname = 'dR_%02u.png' % (im)
-        plot_map(plot_data, x_vals, y_vals, title, fname, 'logplusminus')
+        plot_map(plot_data, x_vals, y_vals, title, fname, 'logplusminus',
+                 plot_mask=plot_mask)
 
-def plot_map(plot_data, x_vals, y_vals, title, fname, fmt, mat_names=None):
+def plot_map(plot_data, x_vals, y_vals, title, fname, fmt, plot_mask=None,
+             mat_names=None):
+    # Make a copy of the plot data to avoid overwriting it
+    plot_data_use = np.array(plot_data)
+
+    # Apply mask if appropriate
+    if plot_mask is not None: plot_data_use[plot_mask] = 0.0
+
     # Color scale
     if fmt == 'logplusminus':
         logvmax = 8
@@ -183,8 +192,8 @@ def plot_map(plot_data, x_vals, y_vals, title, fname, fmt, mat_names=None):
         vmax = 10**logvmax
         vmin = -vmax
         linthresh = 10**loglinthresh
-        norm = colors.SymLogNorm(vmin=vmin, vmax=vmax,
-                                 linthresh=linthresh, linscale=1.0)
+        norm = colors.SymLogNorm(linthresh=linthresh, linscale=1.0,
+                                 vmin=vmin, vmax=vmax, base=10.0)
         cmap='RdBu_r'
         ticks_neg = [-10**x for x in
                      np.linspace(loglinthresh, logvmax, span + 1)]
@@ -196,9 +205,11 @@ def plot_map(plot_data, x_vals, y_vals, title, fname, fmt, mat_names=None):
         tick_labels_pos = [r'$10^{%u}$'  % (x) for x in
                            np.arange(loglinthresh, logvmax + 1, 1)]
         tick_labels = (list(reversed(tick_labels_neg)) + [0] + tick_labels_pos)
+        #print('Min/max values: %9.2e, %9.2e' %
+        #      (np.min(plot_data_use), np.max(plot_data_use)))
     elif fmt == 'log':
-        result_min_nonzero = np.min(plot_data[plot_data != 0])
-        result_max_nonzero = np.max(plot_data[plot_data != 0])
+        result_min_nonzero = np.min(plot_data_use[plot_data_use != 0])
+        result_max_nonzero = np.max(plot_data_use[plot_data_use != 0])
         logvmax = np.ceil(np.log10(result_max_nonzero))
         logvmin = max(np.floor(np.log10(result_min_nonzero)), logvmax - 10)
         vmin = 10**logvmin
@@ -211,14 +222,14 @@ def plot_map(plot_data, x_vals, y_vals, title, fname, fmt, mat_names=None):
                        np.arange(logvmin, logvmax + 1, 1)]
     elif fmt == 'lin':
         vmin = 0.0
-        vmax = np.max(plot_data) * 1.1
+        vmax = np.max(plot_data_use) * 1.1
         norm = colors.Normalize(vmin=vmin, vmax=vmax)
         cmap = 'Reds'
     elif fmt == 'mats':
         with open('com_1', 'r') as reader: lines = reader.readlines()
-        unique_vals = np.unique(plot_data)
+        unique_vals = np.unique(plot_data_use)
         for i, unique_val in enumerate(unique_vals):
-            plot_data[np.where(plot_data == unique_val)] = i
+            plot_data_use[np.where(plot_data_use == unique_val)] = i
         color_strs = (['white'] +
                       [x.split()[2] for x in lines if x.startswith('shade')])
         color_strs = [x for i, x in enumerate(color_strs) if i in unique_vals]
@@ -240,7 +251,7 @@ def plot_map(plot_data, x_vals, y_vals, title, fname, fmt, mat_names=None):
         plt.subplots_adjust(left=0.125, right=0.9)
 
     # Plot data
-    im = ax.pcolormesh(x_vals, y_vals, plot_data, norm=norm, cmap=cmap)
+    im = ax.pcolormesh(x_vals, y_vals, plot_data_use, norm=norm, cmap=cmap)
 
     # Formatting
     ax.set_aspect('equal', 'box')
