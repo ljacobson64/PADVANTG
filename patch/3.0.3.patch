@@ -366,3 +366,8 @@ diff -rN -U0 src-3.0.3-vendor/python/advantg/solvers/denovo/solver.py src-3.0.3-
 -            mpi_args = [mpiexec, np_flag, str(self.num_procs)]
 +            mpi_args = [mpiexec, np_flag, str(self.num_procs),
 +                        '--oversubscribe']
+diff -rN -U0 src-3.0.3-vendor/python/setup.py src-3.0.3-perturb/python/setup.py
+--- src-3.0.3-vendor/python/setup.py
++++ src-3.0.3-perturb/python/setup.py
+@@ -74,0 +75 @@
++            "advantg.perturbation",
