@@ -4,9 +4,9 @@ import os
 import sys
 
 def run_advantg():
-    advantg_dir = ('/home/lucas/git/PADVANTG/build/ADVANTG-3.0.3/'
-                   'lib/python2.7/site-packages')
-    exnihilo_dir = '/home/lucas/git/PADVANTG/build/exnihilo-5.4.0/python'
+    advantg_dir = '/home/lucas/PADVANTG/ADVANTG-3.0.3/lib/python2.7/site-packages'
+    exnihilo_dir = '/opt/software_native/exnihilo-5.4.0/python'
+    sys.path = [x for x in sys.path if 'python3' not in x]
     sys.path.insert(0, advantg_dir)
     os.environ['PYTHONPATH'] = exnihilo_dir
     from advantg.__main__ import main as advantg_main

@@ -4,7 +4,7 @@ set -e
 
 jobs=`grep -c processor /proc/cpuinfo`
 install_prefix=${PWD}
-cnpy_dir=$(readlink -f ../build/cnpy)
+cnpy_dir=/opt/software_native/cnpy
 
 cmake_string=
 cmake_string+=" -DCNPY_DIR=${cnpy_dir}"

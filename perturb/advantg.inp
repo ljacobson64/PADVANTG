@@ -15,9 +15,9 @@ denovo_hdf5_angles          true
 mcnp_input                  mcnp.i
 mcnp_tallies                4
 
-denovo_x_blocks             2
+denovo_x_blocks             3
 denovo_y_blocks             4
-denovo_z_blocks             2
+denovo_z_blocks             3
 
 mcnp_material_names           4 "Air (Dry, Near Sea Level)"
                              13 "Aluminum, Alloy 6061-O"
