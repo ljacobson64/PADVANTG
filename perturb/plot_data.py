@@ -3,6 +3,7 @@
 import os
 import copy
 import numpy as np
+import h5py
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.cm as cm
@@ -45,15 +46,18 @@ mat_names_short = {
     'Uranium-235'                     : 'Uranium-235' }
 
 def main():
-    data = read_pickles()
+    data = read_hdf5()
     plot_all(data)
 
-def read_pickles():
+def read_hdf5():
     data = {}
-    for fname in os.listdir('pickles'):
-        if not fname.endswith('.npy'): continue
-        if fname.startswith('angular'): continue
-        data[fname[:-4]] = np.load('pickles/%s' % (fname))
+    for fname in os.listdir('custom_output'):
+        if not fname.endswith('.h5'): continue
+        print('Reading %s' % (fname))
+        hf = h5py.File('custom_output/%s' % (fname), 'r')
+        for key in hf.keys():
+            if key.startswith('angular'): continue
+            data[key] = np.array(hf[key])
     return data
 
 def plot_all(data):

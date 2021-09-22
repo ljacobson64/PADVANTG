@@ -1,51 +1,144 @@
-#include <chrono>
-
+#include "H5Cpp.h"
 #include "boost/multi_array.hpp"
-#include "cnpy.h"
+#include <chrono>
+#include <iostream>
 
 #define PI 3.14159265358979323846
 #define FOURPI (4.0 * PI)
 
+#define TIME_START(s)                                                          \
+  {                                                                            \
+    printf("%-49s", s);                                                        \
+    fflush(stdout);                                                            \
+    begin = high_resolution_clock::now();                                      \
+  }
+
+#define TIME_END()                                                             \
+  {                                                                            \
+    end = high_resolution_clock::now();                                        \
+    elapsed = duration_cast<duration<double>>(end - begin).count();            \
+    printf(" took %7.3f seconds\n", elapsed);                                  \
+    fflush(stdout);                                                            \
+  }
+
 using boost::extents;
 using boost::multi_array;
-using boost::multi_array_ref;
-using cnpy::npy_load;
-using cnpy::npy_save;
-using cnpy::NpyArray;
-using std::cout;
-using std::endl;
-using std::string;
-using std::vector;
 using std::chrono::duration;
 using std::chrono::duration_cast;
 using std::chrono::high_resolution_clock;
 
-// Read pickle from file
-NpyArray read_pickle(string fname) {
-  cout << "Reading pickles/" << fname << ".npy from file...";
-  cout.flush();
-  high_resolution_clock::time_point begin = high_resolution_clock::now();
-  NpyArray pickle = npy_load("pickles/" + fname + ".npy");
-  high_resolution_clock::time_point end = high_resolution_clock::now();
-  double elapsed = duration_cast<duration<double>>(end - begin).count();
-  cout << " took " << elapsed << " seconds" << endl;
-  cout.flush();
-  return pickle;
+typedef multi_array<int, 1> ArrayInt1D;
+typedef multi_array<int, 3> ArrayInt3D;
+typedef multi_array<double, 1> ArrayDouble1D;
+typedef multi_array<double, 2> ArrayDouble2D;
+typedef multi_array<double, 3> ArrayDouble3D;
+typedef multi_array<double, 4> ArrayDouble4D;
+typedef multi_array<double, 5> ArrayDouble5D;
+
+// template <typename T>
+// void load_int_array(H5::H5File hf, std::string dname, T array) {
+//  H5::DataSet dset = hf.openDataSet(dname.c_str());
+//  H5::DataSpace dspace = dset.getSpace();
+//  hsize_t rank = dspace.getSimpleExtentNdims();
+//  hsize_t dims[rank];
+//  dspace.getSimpleExtentDims(dims);
+//  if (rank == 1)
+//    array.resize(extents[dims[0]]);
+//  else if (rank == 2)
+//    array.resize(extents[dims[0]][dims[1]]);
+//  else if (rank == 3)
+//    array.resize(extents[dims[0]][dims[1]][dims[2]]);
+//  else if (rank == 4)
+//    array.resize(extents[dims[0]][dims[1]][dims[2]]);
+//  else if (rank == 5)
+//    array.resize(extents[dims[0]][dims[1]][dims[2]][dims[3]][dims[4]]);
+//  dset.read(array.origin(), H5::PredType::NATIVE_INT, dspace, dspace);
+//}
+
+ArrayInt1D load_int_1D(H5::H5File hf, std::string dname) {
+  H5::DataSet dset = hf.openDataSet(dname.c_str());
+  H5::DataSpace dspace = dset.getSpace();
+  hsize_t rank = dspace.getSimpleExtentNdims();
+  hsize_t dims[rank];
+  dspace.getSimpleExtentDims(dims);
+  ArrayInt1D array;
+  array.resize(extents[dims[0]]);
+  dset.read(array.origin(), H5::PredType::NATIVE_INT, dspace, dspace);
+  return array;
 }
 
-// Write pickle to file
-template <typename T, size_t NDIMS>
-void write_pickle(string fname, multi_array<T, NDIMS> pickle) {
-  cout << "Writing pickles/" << fname << ".npy to file...";
-  cout.flush();
-  high_resolution_clock::time_point begin = high_resolution_clock::now();
-  const long unsigned int *shape_arr = pickle.shape();
-  vector<long unsigned int> shape(shape_arr, shape_arr + NDIMS);
-  npy_save("pickles/" + fname + ".npy", pickle.origin(), shape, "w");
-  high_resolution_clock::time_point end = high_resolution_clock::now();
-  double elapsed = duration_cast<duration<double>>(end - begin).count();
-  cout << " took " << elapsed << " seconds" << endl;
-  cout.flush();
+ArrayInt3D load_int_3D(H5::H5File hf, std::string dname) {
+  H5::DataSet dset = hf.openDataSet(dname.c_str());
+  H5::DataSpace dspace = dset.getSpace();
+  hsize_t rank = dspace.getSimpleExtentNdims();
+  hsize_t dims[rank];
+  dspace.getSimpleExtentDims(dims);
+  ArrayInt3D array;
+  array.resize(extents[dims[0]][dims[1]][dims[2]]);
+  dset.read(array.origin(), H5::PredType::NATIVE_INT, dspace, dspace);
+  return array;
+}
+
+ArrayDouble1D load_double_1D(H5::H5File hf, std::string dname) {
+  H5::DataSet dset = hf.openDataSet(dname.c_str());
+  H5::DataSpace dspace = dset.getSpace();
+  hsize_t rank = dspace.getSimpleExtentNdims();
+  hsize_t dims[rank];
+  dspace.getSimpleExtentDims(dims);
+  ArrayDouble1D array;
+  array.resize(extents[dims[0]]);
+  dset.read(array.origin(), H5::PredType::NATIVE_DOUBLE, dspace, dspace);
+  return array;
+}
+
+ArrayDouble2D load_double_2D(H5::H5File hf, std::string dname) {
+  H5::DataSet dset = hf.openDataSet(dname.c_str());
+  H5::DataSpace dspace = dset.getSpace();
+  hsize_t rank = dspace.getSimpleExtentNdims();
+  hsize_t dims[rank];
+  dspace.getSimpleExtentDims(dims);
+  ArrayDouble2D array;
+  array.resize(extents[dims[0]][dims[1]]);
+  dset.read(array.origin(), H5::PredType::NATIVE_DOUBLE, dspace, dspace);
+  return array;
+}
+
+ArrayDouble3D load_double_3D(H5::H5File hf, std::string dname) {
+  H5::DataSet dset = hf.openDataSet(dname.c_str());
+  H5::DataSpace dspace = dset.getSpace();
+  hsize_t rank = dspace.getSimpleExtentNdims();
+  hsize_t dims[rank];
+  dspace.getSimpleExtentDims(dims);
+  ArrayDouble3D array;
+  array.resize(extents[dims[0]][dims[1]][dims[2]]);
+  dset.read(array.origin(), H5::PredType::NATIVE_DOUBLE, dspace, dspace);
+  return array;
+}
+
+ArrayDouble5D load_double_5D(H5::H5File hf, std::string dname) {
+  H5::DataSet dset = hf.openDataSet(dname.c_str());
+  H5::DataSpace dspace = dset.getSpace();
+  hsize_t rank = dspace.getSimpleExtentNdims();
+  hsize_t dims[rank];
+  dspace.getSimpleExtentDims(dims);
+  ArrayDouble5D array;
+  array.resize(extents[dims[0]][dims[1]][dims[2]][dims[3]][dims[4]]);
+  dset.read(array.origin(), H5::PredType::NATIVE_DOUBLE, dspace, dspace);
+  return array;
+}
+
+template <typename T, std::size_t DIMENSIONS, typename hdf5_data_type>
+void write_hdf5_array(H5::H5File hf, const std::string &dname,
+                      const boost::multi_array<T, DIMENSIONS> &array,
+                      hdf5_data_type &dtype) {
+  /* Write a boost::multi_array to HDF5.
+     Source: https://stackoverflow.com/a/15221213
+   */
+  dtype.setOrder(H5T_ORDER_LE);
+  std::vector<hsize_t> dimensions(array.shape(), array.shape() + DIMENSIONS);
+  H5::DataSpace dataspace(DIMENSIONS, dimensions.data());
+  H5::DataSet dataset = hf.createDataSet(dname, dtype, dataspace);
+  dataset.write(array.data(), dtype);
 }
 
 int main() {
@@ -53,79 +146,51 @@ int main() {
   high_resolution_clock::time_point begin, end;
   double elapsed;
 
-  // Load pickle data
-  NpyArray mesh_x_np = read_pickle("mesh_x");
-  NpyArray mesh_y_np = read_pickle("mesh_y");
-  NpyArray mesh_z_np = read_pickle("mesh_z");
-  NpyArray mesh_g_np = read_pickle("mesh_g");
-  NpyArray angles_np = read_pickle("angles");
-  NpyArray quadrature_weights_np = read_pickle("quadrature_weights");
-  NpyArray source_indices_np = read_pickle("source_indices");
-  NpyArray source_strengths_np = read_pickle("source_strengths");
-  NpyArray source_spectrum_np = read_pickle("source_spectrum");
-  NpyArray response_indices_np = read_pickle("response_indices");
-  NpyArray response_strengths_np = read_pickle("response_strengths");
-  NpyArray response_spectrum_np = read_pickle("response_spectrum");
-  NpyArray mix_table_np = read_pickle("mix_table");
-  NpyArray material_map_np = read_pickle("material_map");
-  NpyArray sigma_t_np = read_pickle("sigma_t");
-  NpyArray sigma_s_np = read_pickle("sigma_s");
-  NpyArray angular_flux_fwd_np = read_pickle("angular_flux_fwd");
-  NpyArray angular_flux_adj_np = read_pickle("angular_flux_adj");
+  std::string fname1 = "custom_output/data1.h5";
+  std::string fname2 = "custom_output/data2.h5";
+  H5::H5File hf1(fname1.c_str(), H5F_ACC_RDONLY);
+  H5::H5File hf2(fname2.c_str(), H5F_ACC_RDONLY);
+
+  // Read data from HDF5
+  TIME_START("Reading data from HDF5...");
+  ArrayDouble1D mesh_x = load_double_1D(hf2, "mesh_x");
+  ArrayDouble1D mesh_y = load_double_1D(hf2, "mesh_y");
+  ArrayDouble1D mesh_z = load_double_1D(hf2, "mesh_z");
+  ArrayInt1D mesh_g = load_int_1D(hf2, "mesh_g");
+  ArrayDouble2D angles = load_double_2D(hf2, "angles");
+  ArrayDouble1D quadrature_weights = load_double_1D(hf2, "quadrature_weights");
+  ArrayInt1D source_indices = load_int_1D(hf1, "source_indices");
+  ArrayDouble1D source_strengths = load_double_1D(hf1, "source_strengths");
+  ArrayDouble1D source_spectrum = load_double_1D(hf1, "source_spectrum");
+  ArrayInt1D response_indices = load_int_1D(hf1, "response_indices");
+  ArrayDouble1D response_strengths = load_double_1D(hf1, "response_strengths");
+  ArrayDouble1D response_spectrum = load_double_1D(hf1, "response_spectrum");
+  ArrayDouble2D mix_table = load_double_2D(hf1, "mix_table");
+  ArrayInt3D material_map = load_int_3D(hf1, "material_map");
+  ArrayDouble2D sigma_t = load_double_2D(hf1, "sigma_t");
+  ArrayDouble3D sigma_s = load_double_3D(hf1, "sigma_s");
+  ArrayDouble5D angular_flux_fwd = load_double_5D(hf2, "angular_flux_fwd");
+  ArrayDouble5D angular_flux_adj = load_double_5D(hf2, "angular_flux_adj");
+  TIME_END();
 
   // Dimensions
-  int n_mix = mix_table_np.shape[0];        // Number of mixed materials
-  int nm = mix_table_np.shape[1];           // Number of pure materials
-  int nz = angular_flux_fwd_np.shape[0];    // Number of Z intervals
-  int ny = angular_flux_fwd_np.shape[1];    // Number of Y intervals
-  int nx = angular_flux_fwd_np.shape[2];    // Number of X intervals
-  int na = angular_flux_fwd_np.shape[3];    // Number of angles
-  int ngf = angular_flux_fwd_np.shape[4];   // Number of energy groups in flux
-  int ngx = sigma_t_np.shape[1];            // Number of energy groups in XS
-  int n_src = source_indices_np.shape[0];   // Number of source indices
-  int n_res = response_indices_np.shape[0]; // Number of response indices
-
-  // Convert pickle data to Boost MultiArrays
-  multi_array_ref<double, 1> mesh_x{mesh_x_np.data<double>(), extents[nx]};
-  multi_array_ref<double, 1> mesh_y{mesh_y_np.data<double>(), extents[ny]};
-  multi_array_ref<double, 1> mesh_z{mesh_z_np.data<double>(), extents[nz]};
-  multi_array_ref<int, 1> mesh_g{mesh_g_np.data<int>(), extents[ngf]};
-  multi_array_ref<double, 2> angles{angles_np.data<double>(), extents[na][3]};
-  multi_array_ref<double, 1> quadrature_weights{
-      quadrature_weights_np.data<double>(), extents[na]};
-  multi_array_ref<int, 1> source_indices{source_indices_np.data<int>(),
-                                         extents[n_src]};
-  multi_array_ref<double, 1> source_strengths{
-      source_strengths_np.data<double>(), extents[n_src]};
-  multi_array_ref<double, 1> source_spectrum{source_spectrum_np.data<double>(),
-                                             extents[ngx]};
-  multi_array_ref<int, 1> response_indices{response_indices_np.data<int>(),
-                                           extents[n_res]};
-  multi_array_ref<double, 1> response_strengths{
-      response_strengths_np.data<double>(), extents[n_res]};
-  multi_array_ref<double, 1> response_spectrum{
-      response_spectrum_np.data<double>(), extents[ngx]};
-  multi_array_ref<double, 2> mix_table{mix_table_np.data<double>(),
-                                       extents[n_mix][nm]};
-  multi_array_ref<int, 3> material_map{material_map_np.data<int>(),
-                                       extents[nz][ny][nx]};
-  multi_array_ref<double, 2> sigma_t{sigma_t_np.data<double>(),
-                                     extents[nm][ngx]};
-  multi_array_ref<double, 3> sigma_s{sigma_s_np.data<double>(),
-                                     extents[nm][ngx][ngx]};
-  multi_array_ref<double, 5> angular_flux_fwd{
-      angular_flux_fwd_np.data<double>(), extents[nz][ny][nx][na][ngf]};
-  multi_array_ref<double, 5> angular_flux_adj{
-      angular_flux_adj_np.data<double>(), extents[nz][ny][nx][na][ngf]};
+  int n_mix = mix_table.shape()[0];        // Number of mixed materials
+  int nm = mix_table.shape()[1];           // Number of pure materials
+  int nz = angular_flux_fwd.shape()[0];    // Number of Z intervals
+  int ny = angular_flux_fwd.shape()[1];    // Number of Y intervals
+  int nx = angular_flux_fwd.shape()[2];    // Number of X intervals
+  int na = angular_flux_fwd.shape()[3];    // Number of angles
+  int ngf = angular_flux_fwd.shape()[4];   // Number of energy groups in flux
+  int ngx = sigma_t.shape()[1];            // Number of energy groups in XS
+  int n_src = source_indices.shape()[0];   // Number of source indices
+  int n_res = response_indices.shape()[0]; // Number of response indices
 
   // First energy group in flux
   int g0 = mesh_g[0];
 
   // Calculate reverse angle map
-  cout << "Calculating reverse angle map...";
-  cout.flush();
-  begin = high_resolution_clock::now();
-  multi_array<int, 1> reverse_angle_map{extents[na]};
+  TIME_START("Calculating reverse angle map...");
+  ArrayInt1D reverse_angle_map{extents[na]};
   for (int ia = 0; ia < na; ia++) {
     double ix = angles[ia][0];
     double iy = angles[ia][1];
@@ -140,17 +205,12 @@ int main() {
       }
     }
   }
-  end = high_resolution_clock::now();
-  elapsed = duration_cast<duration<double>>(end - begin).count();
-  cout << " took " << elapsed << " seconds" << endl;
-  cout.flush();
+  TIME_END();
 
   // Calculate source and response
-  cout << "Calculating source and response...";
-  cout.flush();
-  begin = high_resolution_clock::now();
-  multi_array<double, 4> source{extents[nz][ny][nx][ngf]};
-  multi_array<double, 4> response{extents[nz][ny][nx][ngf]};
+  TIME_START("Calculating source and response...");
+  ArrayDouble4D source{extents[nz][ny][nx][ngf]};
+  ArrayDouble4D response{extents[nz][ny][nx][ngf]};
   for (int i = 0; i < n_src; i++) {
     int ind = source_indices[i];
     int iz = ind / (ny * nx);
@@ -169,18 +229,13 @@ int main() {
     for (int igf = 0; igf < ngf; igf++)
       response[iz][iy][ix][igf] = strength * response_spectrum[g0 + igf];
   }
-  end = high_resolution_clock::now();
-  elapsed = duration_cast<duration<double>>(end - begin).count();
-  cout << " took " << elapsed << " seconds" << endl;
-  cout.flush();
+  TIME_END();
 
   // Calculate scalar flux
-  cout << "Calculating scalar flux...";
-  cout.flush();
-  begin = high_resolution_clock::now();
-  multi_array<double, 4> scalar_flux_fwd{extents[nz][ny][nx][ngf]};
-  multi_array<double, 4> scalar_flux_adj{extents[nz][ny][nx][ngf]};
-  multi_array<double, 4> scalar_flux_con{extents[nz][ny][nx][ngf]};
+  TIME_START("Calculating scalar flux...");
+  ArrayDouble4D scalar_flux_fwd{extents[nz][ny][nx][ngf]};
+  ArrayDouble4D scalar_flux_adj{extents[nz][ny][nx][ngf]};
+  ArrayDouble4D scalar_flux_con{extents[nz][ny][nx][ngf]};
   for (int iz = 0; iz < nz; iz++) {                    // Z mesh index
     for (int iy = 0; iy < ny; iy++) {                  // Y mesh index
       for (int ix = 0; ix < nx; ix++) {                // X mesh index
@@ -198,17 +253,12 @@ int main() {
       }
     }
   }
-  end = high_resolution_clock::now();
-  elapsed = duration_cast<duration<double>>(end - begin).count();
-  cout << " took " << elapsed << " seconds" << endl;
-  cout.flush();
+  TIME_END();
 
   // Calculate cross sections for mixed materials
-  cout << "Calculating cross sections for mixed materials...";
-  cout.flush();
-  begin = high_resolution_clock::now();
-  multi_array<double, 2> sigma_t_mixed{extents[n_mix][ngx]};
-  multi_array<double, 3> sigma_s_mixed{extents[n_mix][ngx][ngx]};
+  TIME_START("Calculating cross sections for mixed materials...");
+  ArrayDouble2D sigma_t_mixed{extents[n_mix][ngx]};
+  ArrayDouble3D sigma_s_mixed{extents[n_mix][ngx][ngx]};
   for (int i_mix = 0; i_mix < n_mix; i_mix++) { // Mixed material index
     for (int im = 0; im < nm; im++) {           // Material index
       double vol_frac = mix_table[i_mix][im];   // Volume fraction
@@ -222,17 +272,12 @@ int main() {
       }
     }
   }
-  end = high_resolution_clock::now();
-  elapsed = duration_cast<duration<double>>(end - begin).count();
-  cout << " took " << elapsed << " seconds" << endl;
-  cout.flush();
+  TIME_END();
 
   // Calculate perturbations in cross sections
-  cout << "Calculating perturbations in cross sections...";
-  cout.flush();
-  begin = high_resolution_clock::now();
-  multi_array<double, 3> sigma_t_pert{extents[n_mix][nm][ngx]};
-  multi_array<double, 4> sigma_s_pert{extents[n_mix][nm][ngx][ngx]};
+  TIME_START("Calculating perturbations in cross sections...");
+  ArrayDouble3D sigma_t_pert{extents[n_mix][nm][ngx]};
+  ArrayDouble4D sigma_s_pert{extents[n_mix][nm][ngx][ngx]};
   for (int i_mix = 0; i_mix < n_mix; i_mix++) { // Mixed material index
     for (int im = 0; im < nm; im++) {           // Material index
       for (int igx = 0; igx < ngx; igx++) {     // Energy index
@@ -245,18 +290,13 @@ int main() {
       }
     }
   }
-  end = high_resolution_clock::now();
-  elapsed = duration_cast<duration<double>>(end - begin).count();
-  cout << " took " << elapsed << " seconds" << endl;
-  cout.flush();
+  TIME_END();
 
   // Calculate current
-  cout << "Calculating current...";
-  cout.flush();
-  begin = high_resolution_clock::now();
-  multi_array<double, 5> current_fwd{extents[nz][ny][nx][ngf][3]};
-  multi_array<double, 5> current_adj{extents[nz][ny][nx][ngf][3]};
-  multi_array<double, 5> current_con{extents[nz][ny][nx][ngf][3]};
+  TIME_START("Calculating current...");
+  ArrayDouble5D current_fwd{extents[nz][ny][nx][ngf][3]};
+  ArrayDouble5D current_adj{extents[nz][ny][nx][ngf][3]};
+  ArrayDouble5D current_con{extents[nz][ny][nx][ngf][3]};
   for (int iz = 0; iz < nz; iz++) {                    // Z mesh index
     for (int iy = 0; iy < ny; iy++) {                  // Y mesh index
       for (int ix = 0; ix < nx; ix++) {                // X mesh index
@@ -274,24 +314,24 @@ int main() {
       }
     }
   }
-  for (int iz = 0; iz < nz; iz++)
-    for (int iy = 0; iy < ny; iy++)
-      for (int ix = 0; ix < nx; ix++)
-        for (int igf = 0; igf < ngf; igf++)
-          for (int id = 0; id < 3; id++)
+  for (int iz = 0; iz < nz; iz++) {
+    for (int iy = 0; iy < ny; iy++) {
+      for (int ix = 0; ix < nx; ix++) {
+        for (int igf = 0; igf < ngf; igf++) {
+          for (int id = 0; id < 3; id++) {
             current_con[iz][iy][ix][igf][id] =
                 current_fwd[iz][iy][ix][igf][id] *
                 current_adj[iz][iy][ix][igf][id];
-  end = high_resolution_clock::now();
-  elapsed = duration_cast<duration<double>>(end - begin).count();
-  cout << " took " << elapsed << " seconds" << endl;
-  cout.flush();
+          }
+        }
+      }
+    }
+  }
+  TIME_END();
 
   // Calculate dR using angular flux
-  cout << "Calculating dR..."; // 0";
-  cout.flush();
-  begin = high_resolution_clock::now();
-  multi_array<double, 4> dR{extents[nm][nz][ny][nx]};
+  TIME_START("Calculating dR...");
+  ArrayDouble4D dR{extents[nm][nz][ny][nx]};
   for (int im = 0; im < nm; im++) {             // Material index
     for (int iz = 0; iz < nz; iz++) {           // Z mesh index
       for (int iy = 0; iy < ny; iy++) {         // Y mesh index
@@ -327,29 +367,30 @@ int main() {
         }
       }
     }
-    // cout << " " << (100 * (im + 1)) / nm;
-    // cout.flush();
   }
-  end = high_resolution_clock::now();
-  elapsed = duration_cast<duration<double>>(end - begin).count();
-  cout << " took " << elapsed << " seconds" << endl;
-  cout.flush();
+  TIME_END();
 
-  // Write pickles to file
-  write_pickle("reverse_angle_map", reverse_angle_map);
-  write_pickle("source", source);
-  write_pickle("response", response);
-  write_pickle("scalar_flux_fwd", scalar_flux_fwd);
-  write_pickle("scalar_flux_adj", scalar_flux_adj);
-  write_pickle("scalar_flux_con", scalar_flux_con);
-  write_pickle("sigma_t_mixed", sigma_t_mixed);
-  write_pickle("sigma_s_mixed", sigma_s_mixed);
-  write_pickle("sigma_t_pert", sigma_t_pert);
-  write_pickle("sigma_s_pert", sigma_s_pert);
-  write_pickle("current_fwd", current_fwd);
-  write_pickle("current_adj", current_adj);
-  write_pickle("current_con", current_con);
-  write_pickle("dR", dR);
+  // Write data to HDF5
+  TIME_START("Writing data to HDF5...");
+  auto int_type = H5::PredType::NATIVE_INT;
+  auto double_type = H5::PredType::NATIVE_DOUBLE;
+  std::string fnameo = "custom_output/data3.h5";
+  H5::H5File hfo(fnameo, H5F_ACC_TRUNC);
+  write_hdf5_array(hfo, "reverse_angle_map", reverse_angle_map, int_type);
+  write_hdf5_array(hfo, "source", source, double_type);
+  write_hdf5_array(hfo, "response", response, double_type);
+  write_hdf5_array(hfo, "scalar_flux_fwd", scalar_flux_fwd, double_type);
+  write_hdf5_array(hfo, "scalar_flux_adj", scalar_flux_adj, double_type);
+  write_hdf5_array(hfo, "scalar_flux_con", scalar_flux_con, double_type);
+  write_hdf5_array(hfo, "sigma_t_mixed", sigma_t_mixed, double_type);
+  write_hdf5_array(hfo, "sigma_s_mixed", sigma_s_mixed, double_type);
+  write_hdf5_array(hfo, "sigma_t_pert", sigma_t_pert, double_type);
+  write_hdf5_array(hfo, "sigma_s_pert", sigma_s_pert, double_type);
+  write_hdf5_array(hfo, "current_fwd", current_fwd, double_type);
+  write_hdf5_array(hfo, "current_adj", current_adj, double_type);
+  write_hdf5_array(hfo, "current_con", current_con, double_type);
+  write_hdf5_array(hfo, "dR", dR, double_type);
+  TIME_END();
 
   return 0;
 }

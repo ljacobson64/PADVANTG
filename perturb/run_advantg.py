@@ -11,7 +11,7 @@ def run_advantg():
     os.environ['PYTHONPATH'] = exnihilo_dir
     from advantg.__main__ import main as advantg_main
 
-    #os.system('rm -rf adj_solution fwd_solution model output text_files')
+    #os.system('rm -rf adj_solution fwd_solution model output custom_output')
     os.system('rm -rf output*')
 
     advantg_main(['-f', '-v', 'advantg.inp'])

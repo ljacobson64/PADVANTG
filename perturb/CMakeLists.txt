@@ -1,14 +1,11 @@
 project(PADVANTG)
 cmake_minimum_required(VERSION 2.8)
 
-# Location of the cnpy library
-if (NOT CNPY_DIR)
-  set(CNPY_DIR $ENV{HOME}/PADVANTG/build/cnpy)
-endif ()
-include_directories(${CNPY_DIR}/include)
-link_directories(${CNPY_DIR}/lib)
+# Find HDF5
+find_package(HDF5 COMPONENTS CXX REQUIRED)
+include_directories(${HDF5_INCLUDE_DIRS})
 
-# Build type -- Release or Debug
+# Default to Release build
 if (NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif ()
@@ -21,13 +18,13 @@ list(APPEND CMAKE_CXX_FLAGS -Wno-narrowing)
 
 # Print some variables to the screen
 message("")
-message(STATUS "CNPY_DIR:             ${CNPY_DIR}"            )
+message(STATUS "HDF5_LIBRARIES:       ${HDF5_LIBRARIES}"      )
+message(STATUS "HDF5_INCLUDE_DIRS:    ${HDF5_INCLUDE_DIRS}"   )
 message(STATUS "CMAKE_INSTALL_PREFIX: ${CMAKE_INSTALL_PREFIX}")
 message(STATUS "CMAKE_BUILD_TYPE:     ${CMAKE_BUILD_TYPE}"    )
-message(STATUS "CMAKE_CXX_FLAGS:      ${CMAKE_CXX_FLAGS}"     )
 message("")
 
 # Install executables
 add_executable(calculate calculate.cpp)
-target_link_libraries(calculate cnpy)
+target_link_libraries(calculate ${HDF5_LIBRARIES})
 install(TARGETS calculate DESTINATION ".")
