@@ -3,15 +3,27 @@
 # Quit if any errors occur
 set -e
 
+# ADVANTG version
+if [ -z "${1}" ]; then
+  advantg_version=3.0.3
+else
+  advantg_version=${1}
+fi
+echo "Using ADVANTG version ${advantg_version}"
+
 # Package versions
 hdf5_version=1.10.7
 silo_version=4.10.2
 openmpi_version=4.1.1
-lava_version=1.1.1
+if [ "${advantg_version}" == "3.0.3" ]; then
+  lava_version=1.1.1
+else
+  lava_version=1.4.0
+fi
 exnihilo_version=5.4.0
-advantg_version=3.0.3
 
 # Important paths
+base_dir=${PWD}
 dist_dir=${HOME}/dist
 dependency_dir=/opt/software_native
 mcnp_exe=/opt/software_misc/MCNP/bin/mcnp5
@@ -37,8 +49,8 @@ CXX=${openmpi_dir}/bin/mpic++
 FC=${openmpi_dir}/bin/mpifort
 
 # Get ADVANTG source code
-build_prefix=${PWD}/ADVANTG-${advantg_version}
-install_prefix=${PWD}/ADVANTG-${advantg_version}
+build_prefix=${base_dir}/ADVANTG-${advantg_version}
+install_prefix=${base_dir}/ADVANTG-${advantg_version}
 echo "Removing existing files"
 rm -rf ${build_prefix}
 mkdir -pv ${build_prefix}/bld
@@ -46,17 +58,19 @@ cd ${build_prefix}
 tarball=advantg-${advantg_version}.tar.gz
 echo "Unpacking ${tarball}"
 tar -xzf ${dist_dir}/advantg/${tarball}
+if [ "${advantg_version}" == "3.0.3" ]; then
+  ln -sv advantg src
+else
+  ln -sv advantg-${advantg_version} src
+fi
 
 # Patch source code
-cd advantg
+cd src
 echo "Applying patch"
 patch -p1 < ../../patch/${advantg_version}.patch
 
 # Install multigroup cross sections
-echo "Installing mgxs"
-mkdir -p ${install_prefix}/mgxs
-cd ${install_prefix}/mgxs
-tar -xzf ${dist_dir}/advantg/mgxs.tar.gz
+ln -sv ${base_dir}/mgxs ${install_prefix}
 
 # Set CMake settings
 export CMAKE_PREFIX_PATH=${openmpi_dir}:${hdf5_dir}:${silo_dir}:${lava_dir}
@@ -74,8 +88,8 @@ cmake_string+=" -DCMAKE_CXX_COMPILER=${CXX}"
 cmake_string+=" -DCMAKE_Fortran_COMPILER=${FC}"
 
 # Build and install ADVANTG
-echo "Building and installing ADVANTG"
+echo "Building and installing ADVANTG-${advantg_version}"
 cd ${build_prefix}/bld
-cmake ../advantg ${cmake_string}
+cmake ../src ${cmake_string}
 make -j${num_cpus}
 make -j${num_cpus} install

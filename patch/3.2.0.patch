@@ -1,0 +1,6 @@
+diff -rN -U0 src-3.2.0-vendor/cmake/config.cmake src-3.2.0-perturb/cmake/config.cmake
+--- src-3.2.0-vendor/cmake/config.cmake
++++ src-3.2.0-perturb/cmake/config.cmake
+@@ -2 +2 @@
+-find_package(PythonInterp)
++find_package(PythonInterp 2)

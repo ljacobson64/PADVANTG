@@ -1,5 +1,6 @@
 *.pyc
 __pycache__
-/ADVANTG-3.0.3
-/src-3.0.3-perturb
-/src-3.0.3-vendor
+/ADVANTG-*
+/mgxs
+/src-*-perturb
+/src-*-vendor
