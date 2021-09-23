@@ -21,124 +21,42 @@
     fflush(stdout);                                                            \
   }
 
+using boost::array;
 using boost::extents;
 using boost::multi_array;
+using boost::detail::multi_array::multi_array_base;
 using std::chrono::duration;
 using std::chrono::duration_cast;
 using std::chrono::high_resolution_clock;
 
-typedef multi_array<int, 1> ArrayInt1D;
-typedef multi_array<int, 3> ArrayInt3D;
-typedef multi_array<double, 1> ArrayDouble1D;
-typedef multi_array<double, 2> ArrayDouble2D;
-typedef multi_array<double, 3> ArrayDouble3D;
-typedef multi_array<double, 4> ArrayDouble4D;
-typedef multi_array<double, 5> ArrayDouble5D;
-
-// template <typename T>
-// void load_int_array(H5::H5File hf, std::string dname, T array) {
-//  H5::DataSet dset = hf.openDataSet(dname.c_str());
-//  H5::DataSpace dspace = dset.getSpace();
-//  hsize_t rank = dspace.getSimpleExtentNdims();
-//  hsize_t dims[rank];
-//  dspace.getSimpleExtentDims(dims);
-//  if (rank == 1)
-//    array.resize(extents[dims[0]]);
-//  else if (rank == 2)
-//    array.resize(extents[dims[0]][dims[1]]);
-//  else if (rank == 3)
-//    array.resize(extents[dims[0]][dims[1]][dims[2]]);
-//  else if (rank == 4)
-//    array.resize(extents[dims[0]][dims[1]][dims[2]]);
-//  else if (rank == 5)
-//    array.resize(extents[dims[0]][dims[1]][dims[2]][dims[3]][dims[4]]);
-//  dset.read(array.origin(), H5::PredType::NATIVE_INT, dspace, dspace);
-//}
-
-ArrayInt1D load_int_1D(H5::H5File hf, std::string dname) {
+template <typename T, std::size_t NDIMS, typename HDF5_TYPE>
+void read_hdf5_array(H5::H5File hf, const std::string &dname,
+                     multi_array<T, NDIMS> &A, HDF5_TYPE &dtype) {
+  /* Read an HDF5 array into a boost::multi_array.
+   */
   H5::DataSet dset = hf.openDataSet(dname.c_str());
   H5::DataSpace dspace = dset.getSpace();
-  hsize_t rank = dspace.getSimpleExtentNdims();
-  hsize_t dims[rank];
+  hsize_t dims[NDIMS];
   dspace.getSimpleExtentDims(dims);
-  ArrayInt1D array;
-  array.resize(extents[dims[0]]);
-  dset.read(array.origin(), H5::PredType::NATIVE_INT, dspace, dspace);
-  return array;
+  array<multi_array_base::index, NDIMS> A_extents;
+  for (int i = 0; i < NDIMS; i++) {
+    A_extents[i] = dims[i];
+  }
+  A.resize(A_extents);
+  dset.read(A.origin(), dtype, dspace, dspace);
 }
 
-ArrayInt3D load_int_3D(H5::H5File hf, std::string dname) {
-  H5::DataSet dset = hf.openDataSet(dname.c_str());
-  H5::DataSpace dspace = dset.getSpace();
-  hsize_t rank = dspace.getSimpleExtentNdims();
-  hsize_t dims[rank];
-  dspace.getSimpleExtentDims(dims);
-  ArrayInt3D array;
-  array.resize(extents[dims[0]][dims[1]][dims[2]]);
-  dset.read(array.origin(), H5::PredType::NATIVE_INT, dspace, dspace);
-  return array;
-}
-
-ArrayDouble1D load_double_1D(H5::H5File hf, std::string dname) {
-  H5::DataSet dset = hf.openDataSet(dname.c_str());
-  H5::DataSpace dspace = dset.getSpace();
-  hsize_t rank = dspace.getSimpleExtentNdims();
-  hsize_t dims[rank];
-  dspace.getSimpleExtentDims(dims);
-  ArrayDouble1D array;
-  array.resize(extents[dims[0]]);
-  dset.read(array.origin(), H5::PredType::NATIVE_DOUBLE, dspace, dspace);
-  return array;
-}
-
-ArrayDouble2D load_double_2D(H5::H5File hf, std::string dname) {
-  H5::DataSet dset = hf.openDataSet(dname.c_str());
-  H5::DataSpace dspace = dset.getSpace();
-  hsize_t rank = dspace.getSimpleExtentNdims();
-  hsize_t dims[rank];
-  dspace.getSimpleExtentDims(dims);
-  ArrayDouble2D array;
-  array.resize(extents[dims[0]][dims[1]]);
-  dset.read(array.origin(), H5::PredType::NATIVE_DOUBLE, dspace, dspace);
-  return array;
-}
-
-ArrayDouble3D load_double_3D(H5::H5File hf, std::string dname) {
-  H5::DataSet dset = hf.openDataSet(dname.c_str());
-  H5::DataSpace dspace = dset.getSpace();
-  hsize_t rank = dspace.getSimpleExtentNdims();
-  hsize_t dims[rank];
-  dspace.getSimpleExtentDims(dims);
-  ArrayDouble3D array;
-  array.resize(extents[dims[0]][dims[1]][dims[2]]);
-  dset.read(array.origin(), H5::PredType::NATIVE_DOUBLE, dspace, dspace);
-  return array;
-}
-
-ArrayDouble5D load_double_5D(H5::H5File hf, std::string dname) {
-  H5::DataSet dset = hf.openDataSet(dname.c_str());
-  H5::DataSpace dspace = dset.getSpace();
-  hsize_t rank = dspace.getSimpleExtentNdims();
-  hsize_t dims[rank];
-  dspace.getSimpleExtentDims(dims);
-  ArrayDouble5D array;
-  array.resize(extents[dims[0]][dims[1]][dims[2]][dims[3]][dims[4]]);
-  dset.read(array.origin(), H5::PredType::NATIVE_DOUBLE, dspace, dspace);
-  return array;
-}
-
-template <typename T, std::size_t DIMENSIONS, typename hdf5_data_type>
+template <typename T, std::size_t NDIMS, typename HDF5_TYPE>
 void write_hdf5_array(H5::H5File hf, const std::string &dname,
-                      const boost::multi_array<T, DIMENSIONS> &array,
-                      hdf5_data_type &dtype) {
+                      const multi_array<T, NDIMS> &A, HDF5_TYPE &dtype) {
   /* Write a boost::multi_array to HDF5.
      Source: https://stackoverflow.com/a/15221213
    */
   dtype.setOrder(H5T_ORDER_LE);
-  std::vector<hsize_t> dimensions(array.shape(), array.shape() + DIMENSIONS);
-  H5::DataSpace dataspace(DIMENSIONS, dimensions.data());
-  H5::DataSet dataset = hf.createDataSet(dname, dtype, dataspace);
-  dataset.write(array.data(), dtype);
+  std::vector<hsize_t> dims(A.shape(), A.shape() + NDIMS);
+  H5::DataSpace dspace(NDIMS, dims.data());
+  H5::DataSet dset = hf.createDataSet(dname, dtype, dspace);
+  dset.write(A.data(), dtype);
 }
 
 int main() {
@@ -150,30 +68,41 @@ int main() {
   std::string fname2 = "custom_output/data2.h5";
   H5::H5File hf1(fname1.c_str(), H5F_ACC_RDONLY);
   H5::H5File hf2(fname2.c_str(), H5F_ACC_RDONLY);
+  auto int_type = H5::PredType::NATIVE_INT;
+  auto double_type = H5::PredType::NATIVE_DOUBLE;
+
+  // Create arrays for data to be read from HDF5
+  multi_array<int, 1> mesh_g, source_indices, response_indices;
+  multi_array<int, 3> material_map;
+  multi_array<double, 1> mesh_x, mesh_y, mesh_z, quadrature_weights,
+      source_strengths, source_spectrum, response_strengths, response_spectrum;
+  multi_array<double, 2> angles, mix_table, sigma_t;
+  multi_array<double, 3> sigma_s;
+  multi_array<double, 5> angular_flux_fwd, angular_flux_adj;
 
   // Read data from HDF5
   TIME_START("Reading data from HDF5...");
-  ArrayDouble1D mesh_x = load_double_1D(hf2, "mesh_x");
-  ArrayDouble1D mesh_y = load_double_1D(hf2, "mesh_y");
-  ArrayDouble1D mesh_z = load_double_1D(hf2, "mesh_z");
-  ArrayInt1D mesh_g = load_int_1D(hf2, "mesh_g");
-  ArrayDouble2D angles = load_double_2D(hf2, "angles");
-  ArrayDouble1D quadrature_weights = load_double_1D(hf2, "quadrature_weights");
-  ArrayInt1D source_indices = load_int_1D(hf1, "source_indices");
-  ArrayDouble1D source_strengths = load_double_1D(hf1, "source_strengths");
-  ArrayDouble1D source_spectrum = load_double_1D(hf1, "source_spectrum");
-  ArrayInt1D response_indices = load_int_1D(hf1, "response_indices");
-  ArrayDouble1D response_strengths = load_double_1D(hf1, "response_strengths");
-  ArrayDouble1D response_spectrum = load_double_1D(hf1, "response_spectrum");
-  ArrayDouble2D mix_table = load_double_2D(hf1, "mix_table");
-  ArrayInt3D material_map = load_int_3D(hf1, "material_map");
-  ArrayDouble2D sigma_t = load_double_2D(hf1, "sigma_t");
-  ArrayDouble3D sigma_s = load_double_3D(hf1, "sigma_s");
-  ArrayDouble5D angular_flux_fwd = load_double_5D(hf2, "angular_flux_fwd");
-  ArrayDouble5D angular_flux_adj = load_double_5D(hf2, "angular_flux_adj");
+  read_hdf5_array(hf2, "mesh_x", mesh_x, double_type);
+  read_hdf5_array(hf2, "mesh_y", mesh_y, double_type);
+  read_hdf5_array(hf2, "mesh_z", mesh_z, double_type);
+  read_hdf5_array(hf2, "mesh_g", mesh_g, int_type);
+  read_hdf5_array(hf2, "angles", angles, double_type);
+  read_hdf5_array(hf2, "quadrature_weights", quadrature_weights, double_type);
+  read_hdf5_array(hf1, "source_indices", source_indices, int_type);
+  read_hdf5_array(hf1, "source_strengths", source_strengths, double_type);
+  read_hdf5_array(hf1, "source_spectrum", source_spectrum, double_type);
+  read_hdf5_array(hf1, "response_indices", response_indices, int_type);
+  read_hdf5_array(hf1, "response_strengths", response_strengths, double_type);
+  read_hdf5_array(hf1, "response_spectrum", response_spectrum, double_type);
+  read_hdf5_array(hf1, "mix_table", mix_table, double_type);
+  read_hdf5_array(hf1, "material_map", material_map, int_type);
+  read_hdf5_array(hf1, "sigma_t", sigma_t, double_type);
+  read_hdf5_array(hf1, "sigma_s", sigma_s, double_type);
+  read_hdf5_array(hf2, "angular_flux_fwd", angular_flux_fwd, double_type);
+  read_hdf5_array(hf2, "angular_flux_adj", angular_flux_adj, double_type);
   TIME_END();
 
-  // Dimensions
+  // Get relevant dimensions
   int n_mix = mix_table.shape()[0];        // Number of mixed materials
   int nm = mix_table.shape()[1];           // Number of pure materials
   int nz = angular_flux_fwd.shape()[0];    // Number of Z intervals
@@ -184,13 +113,11 @@ int main() {
   int ngx = sigma_t.shape()[1];            // Number of energy groups in XS
   int n_src = source_indices.shape()[0];   // Number of source indices
   int n_res = response_indices.shape()[0]; // Number of response indices
-
-  // First energy group in flux
-  int g0 = mesh_g[0];
+  int g0 = mesh_g[0];                      // First energy group in flux
 
   // Calculate reverse angle map
   TIME_START("Calculating reverse angle map...");
-  ArrayInt1D reverse_angle_map{extents[na]};
+  multi_array<int, 1> reverse_angle_map{extents[na]};
   for (int ia = 0; ia < na; ia++) {
     double ix = angles[ia][0];
     double iy = angles[ia][1];
@@ -209,8 +136,8 @@ int main() {
 
   // Calculate source and response
   TIME_START("Calculating source and response...");
-  ArrayDouble4D source{extents[nz][ny][nx][ngf]};
-  ArrayDouble4D response{extents[nz][ny][nx][ngf]};
+  multi_array<double, 4> source{extents[nz][ny][nx][ngf]};
+  multi_array<double, 4> response{extents[nz][ny][nx][ngf]};
   for (int i = 0; i < n_src; i++) {
     int ind = source_indices[i];
     int iz = ind / (ny * nx);
@@ -233,9 +160,9 @@ int main() {
 
   // Calculate scalar flux
   TIME_START("Calculating scalar flux...");
-  ArrayDouble4D scalar_flux_fwd{extents[nz][ny][nx][ngf]};
-  ArrayDouble4D scalar_flux_adj{extents[nz][ny][nx][ngf]};
-  ArrayDouble4D scalar_flux_con{extents[nz][ny][nx][ngf]};
+  multi_array<double, 4> scalar_flux_fwd{extents[nz][ny][nx][ngf]};
+  multi_array<double, 4> scalar_flux_adj{extents[nz][ny][nx][ngf]};
+  multi_array<double, 4> scalar_flux_con{extents[nz][ny][nx][ngf]};
   for (int iz = 0; iz < nz; iz++) {                    // Z mesh index
     for (int iy = 0; iy < ny; iy++) {                  // Y mesh index
       for (int ix = 0; ix < nx; ix++) {                // X mesh index
@@ -257,8 +184,8 @@ int main() {
 
   // Calculate cross sections for mixed materials
   TIME_START("Calculating cross sections for mixed materials...");
-  ArrayDouble2D sigma_t_mixed{extents[n_mix][ngx]};
-  ArrayDouble3D sigma_s_mixed{extents[n_mix][ngx][ngx]};
+  multi_array<double, 2> sigma_t_mixed{extents[n_mix][ngx]};
+  multi_array<double, 3> sigma_s_mixed{extents[n_mix][ngx][ngx]};
   for (int i_mix = 0; i_mix < n_mix; i_mix++) { // Mixed material index
     for (int im = 0; im < nm; im++) {           // Material index
       double vol_frac = mix_table[i_mix][im];   // Volume fraction
@@ -276,8 +203,8 @@ int main() {
 
   // Calculate perturbations in cross sections
   TIME_START("Calculating perturbations in cross sections...");
-  ArrayDouble3D sigma_t_pert{extents[n_mix][nm][ngx]};
-  ArrayDouble4D sigma_s_pert{extents[n_mix][nm][ngx][ngx]};
+  multi_array<double, 3> sigma_t_pert{extents[n_mix][nm][ngx]};
+  multi_array<double, 4> sigma_s_pert{extents[n_mix][nm][ngx][ngx]};
   for (int i_mix = 0; i_mix < n_mix; i_mix++) { // Mixed material index
     for (int im = 0; im < nm; im++) {           // Material index
       for (int igx = 0; igx < ngx; igx++) {     // Energy index
@@ -294,9 +221,9 @@ int main() {
 
   // Calculate current
   TIME_START("Calculating current...");
-  ArrayDouble5D current_fwd{extents[nz][ny][nx][ngf][3]};
-  ArrayDouble5D current_adj{extents[nz][ny][nx][ngf][3]};
-  ArrayDouble5D current_con{extents[nz][ny][nx][ngf][3]};
+  multi_array<double, 5> current_fwd{extents[nz][ny][nx][ngf][3]};
+  multi_array<double, 5> current_adj{extents[nz][ny][nx][ngf][3]};
+  multi_array<double, 5> current_con{extents[nz][ny][nx][ngf][3]};
   for (int iz = 0; iz < nz; iz++) {                    // Z mesh index
     for (int iy = 0; iy < ny; iy++) {                  // Y mesh index
       for (int ix = 0; ix < nx; ix++) {                // X mesh index
@@ -331,7 +258,7 @@ int main() {
 
   // Calculate dR using angular flux
   TIME_START("Calculating dR...");
-  ArrayDouble4D dR{extents[nm][nz][ny][nx]};
+  multi_array<double, 4> dR{extents[nm][nz][ny][nx]};
   for (int im = 0; im < nm; im++) {             // Material index
     for (int iz = 0; iz < nz; iz++) {           // Z mesh index
       for (int iy = 0; iy < ny; iy++) {         // Y mesh index
@@ -372,8 +299,6 @@ int main() {
 
   // Write data to HDF5
   TIME_START("Writing data to HDF5...");
-  auto int_type = H5::PredType::NATIVE_INT;
-  auto double_type = H5::PredType::NATIVE_DOUBLE;
   std::string fnameo = "custom_output/data3.h5";
   H5::H5File hfo(fnameo, H5F_ACC_TRUNC);
   write_hdf5_array(hfo, "reverse_angle_map", reverse_angle_map, int_type);
