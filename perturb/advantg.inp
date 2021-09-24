@@ -8,9 +8,8 @@ anisn_upscatter             False
 denovo_first_group          1
 denovo_last_group           26
 denovo_verbose              true
-denovo_silo_mixed           true
-denovo_silo_moments         true
-denovo_hdf5_angles          true
+#denovo_hdf5_angles         true  # ADVANTG 3.0.3
+denovo_write_angular_flux   true  # ADVANTG 3.2.0
 
 mcnp_input                  mcnp.i
 mcnp_tallies                4
