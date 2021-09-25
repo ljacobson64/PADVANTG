@@ -107,10 +107,10 @@ int main() {
 
   // Create arrays for data to be read from HDF5
   multi_array<int, 1> mesh_g;
-  multi_array<int, 3> source_ids, response_ids, matids;
-  multi_array<double, 1> mesh_x, mesh_y, mesh_z, quadrature_weights,
-      group_bounds_n, group_bounds_p;
-  multi_array<double, 2> quadrature_angles, source_spectra, response_spectra,
+  multi_array<int, 3> matids, source_ids, response_ids;
+  multi_array<double, 1> group_bounds_n, group_bounds_p, mesh_x, mesh_y, mesh_z,
+      quadrature_weights;
+  multi_array<double, 2> source_spectra, response_spectra, quadrature_angles,
       sigma_t;
   multi_array<double, 3> source_strength, response_strength, sigma_s;
   multi_array<double, 5> angular_flux_fwd, angular_flux_adj;
@@ -118,44 +118,67 @@ int main() {
 
   // Read data from HDF5
   TIME_START("Reading data from HDF5...");
-  read_hdf5_array(hf_fwd_out, "denovo/mesh_x", mesh_x);
-  read_hdf5_array(hf_fwd_out, "denovo/mesh_y", mesh_y);
-  read_hdf5_array(hf_fwd_out, "denovo/mesh_z", mesh_z);
-  read_hdf5_array(hf_fwd_out, "denovo/mesh_g", mesh_g);
-  read_hdf5_array(hf_fwd_out, "denovo/quadrature_angles", quadrature_angles);
-  read_hdf5_array(hf_fwd_out, "denovo/quadrature_weights", quadrature_weights);
+  read_hdf5_array(hf_fwd_inp, "group_bounds_n", group_bounds_n);
+  read_hdf5_array(hf_fwd_inp, "group_bounds_p", group_bounds_p);
+  read_hdf5_array(hf_fwd_inp, "mixtable", mixtable);
+  read_hdf5_array(hf_fwd_inp, "matids", matids);
   read_hdf5_array(hf_fwd_inp, "volsrc/spectra", source_spectra);
   read_hdf5_array(hf_fwd_inp, "volsrc/strength", source_strength);
   read_hdf5_array(hf_fwd_inp, "volsrc/ids", source_ids);
   read_hdf5_array(hf_adj_inp, "volsrc/spectra", response_spectra);
   read_hdf5_array(hf_adj_inp, "volsrc/strength", response_strength);
   read_hdf5_array(hf_adj_inp, "volsrc/ids", response_ids);
-  read_hdf5_array(hf_fwd_inp, "group_bounds_n", group_bounds_n);
-  read_hdf5_array(hf_fwd_inp, "group_bounds_p", group_bounds_p);
-  read_hdf5_array(hf_fwd_inp, "mixtable", mixtable);
-  read_hdf5_array(hf_fwd_inp, "matids", matids);
+  read_hdf5_array(hf_fwd_out, "denovo/mesh_x", mesh_x);
+  read_hdf5_array(hf_fwd_out, "denovo/mesh_y", mesh_y);
+  read_hdf5_array(hf_fwd_out, "denovo/mesh_z", mesh_z);
+  read_hdf5_array(hf_fwd_out, "denovo/mesh_g", mesh_g);
+  read_hdf5_array(hf_fwd_out, "denovo/quadrature_angles", quadrature_angles);
+  read_hdf5_array(hf_fwd_out, "denovo/quadrature_weights", quadrature_weights);
   read_hdf5_array(hf_fwd_out, "denovo/angular_flux", angular_flux_fwd);
   read_hdf5_array(hf_adj_out, "denovo/angular_flux", angular_flux_adj);
   read_hdf5_array(hf_custom, "sigma_t", sigma_t);
   read_hdf5_array(hf_custom, "sigma_s", sigma_s);
   TIME_END();
 
-  // ----------------------------------------
-  // REFACTORING IS FINISHED UP TO THIS POINT
-  // ----------------------------------------
+  // +--------------------------------------------------------------------+
+  // |                    Array extents for reference                     |
+  // +--------------------+-----------------------+-----------------------+
+  // | group_bounds_n     | (28,)                 |                       |
+  // | group_bounds_p     | (20,)                 |                       |
+  // | mixtable           | (17,)                 |                       |
+  // | matids             | (44, 44, 43)          | [nz][ny][nx]          |
+  // | source_spectra     | (1, 46)               | [0][ngx]              |
+  // | source_strength    | (44, 44, 43)          | [nz][ny][nx]          |
+  // | source_ids         | (44, 44, 43)          | [nz][ny][nx]          |
+  // | response_spectra   | (1, 46)               | [0][ngx]              |
+  // | response_strength  | (44, 44, 43)          | [nz][ny][nx]          |
+  // | response_ids       | (44, 44, 43)          | [nz][ny][nx]          |
+  // | mesh_x             | (44,)                 | [nx + 1]              |
+  // | mesh_y             | (45,)                 | [ny + 1]              |
+  // | mesh_z             | (45,)                 | [nz + 1]              |
+  // | mesh_g             | (26,)                 | [ngf]                 |
+  // | quadrature_angles  | (128, 3)              | [na][3]               |
+  // | quadrature_weights | (128,)                | [na]                  |
+  // | angular_flux_fwd   | (26, 44, 44, 43, 128) | [ngf][nz][ny][nx][na] |
+  // | angular_flux_adj   | (26, 44, 44, 43, 128) | [ngf][nz][ny][nx][na] |
+  // | sigma_t            | (17, 46)              | [nm][ngx]             |
+  // | sigma_s            | (17, 46, 46)          | [nm][ngx][ngx]        |
+  // +--------------------+-----------------------+-----------------------+
 
-  // Get relevant dimensions
-  int n_mix = mixtable.shape()[0];       // Number of mixed materials
-  int nm = mixtable.shape()[1];          // Number of pure materials
-  int nz = angular_flux_fwd.shape()[0];  // Number of Z intervals
-  int ny = angular_flux_fwd.shape()[1];  // Number of Y intervals
-  int nx = angular_flux_fwd.shape()[2];  // Number of X intervals
-  int na = angular_flux_fwd.shape()[3];  // Number of angles
-  int ngf = angular_flux_fwd.shape()[4]; // Number of energy groups in flux
+  // Relevant dimensions
+  int nm = sigma_t.shape()[0];           // Number of pure materials
   int ngx = sigma_t.shape()[1];          // Number of energy groups in XS
-  int n_src = source_ids.shape()[0];     // Number of source indices
-  int n_res = response_ids.shape()[0];   // Number of response indices
-  int g0 = mesh_g[0];                    // First energy group in flux
+  int ngf = angular_flux_fwd.shape()[0]; // Number of energy groups in flux
+  int nz = angular_flux_fwd.shape()[1];  // Number of Z intervals
+  int ny = angular_flux_fwd.shape()[2];  // Number of Y intervals
+  int nx = angular_flux_fwd.shape()[3];  // Number of X intervals
+  int na = angular_flux_fwd.shape()[4];  // Number of angles
+
+  // First energy group in flux
+  int g0 = mesh_g[0];
+
+  // Number of mixed materials
+  int nmix = mixtable[mixtable.shape()[0] - 1].row + 1;
 
   // Calculate reverse angle map
   TIME_START("Calculating reverse angle map...");
@@ -178,45 +201,39 @@ int main() {
 
   // Calculate source and response
   TIME_START("Calculating source and response...");
-  multi_array<double, 4> source{extents[nz][ny][nx][ngf]};
-  multi_array<double, 4> response{extents[nz][ny][nx][ngf]};
-  for (int i = 0; i < n_src; i++) {
-    int ind = source_ids[i];
-    int iz = ind / (ny * nx);
-    int iy = (ind / nx) % ny;
-    int ix = ind % nx;
-    double strength = source_strength[i];
-    for (int igf = 0; igf < ngf; igf++)
-      source[iz][iy][ix][igf] = strength * source_spectra[g0 + igf];
-  }
-  for (int i = 0; i < n_res; i++) {
-    int ind = response_ids[i];
-    int iz = ind / (ny * nx);
-    int iy = (ind / nx) % ny;
-    int ix = ind % nx;
-    double strength = response_strength[i];
-    for (int igf = 0; igf < ngf; igf++)
-      response[iz][iy][ix][igf] = strength * response_spectra[g0 + igf];
+  multi_array<double, 4> source{extents[ngf][nz][ny][nx]};
+  multi_array<double, 4> response{extents[ngf][nz][ny][nx]};
+  for (int igf = 0; igf < ngf; igf++) { // Energy index
+    double spec_src = source_spectra[0][g0 + igf];
+    double spec_res = response_spectra[0][g0 + igf];
+    for (int iz = 0; iz < nz; iz++) {     // Z mesh index
+      for (int iy = 0; iy < ny; iy++) {   // Y mesh index
+        for (int ix = 0; ix < nx; ix++) { // X mesh index
+          source[igf][iz][iy][ix] = source_strength[iz][iy][ix] * spec_src;
+          response[igf][iz][iy][ix] = response_strength[iz][iy][ix] * spec_res;
+        }
+      }
+    }
   }
   TIME_END();
 
   // Calculate scalar flux
   TIME_START("Calculating scalar flux...");
-  multi_array<double, 4> scalar_flux_fwd{extents[nz][ny][nx][ngf]};
-  multi_array<double, 4> scalar_flux_adj{extents[nz][ny][nx][ngf]};
-  multi_array<double, 4> scalar_flux_con{extents[nz][ny][nx][ngf]};
-  for (int iz = 0; iz < nz; iz++) {                    // Z mesh index
-    for (int iy = 0; iy < ny; iy++) {                  // Y mesh index
-      for (int ix = 0; ix < nx; ix++) {                // X mesh index
-        for (int ia = 0; ia < na; ia++) {              // Angle index
-          double qw = quadrature_weights[ia] / FOURPI; // Quadrature weight
-          int ja = reverse_angle_map[ia];              // Reverse angle index
-          for (int igf = 0; igf < ngf; igf++) {        // Energy index
-            double ffwd = angular_flux_fwd[iz][iy][ix][ia][igf] * qw;
-            double fadj = angular_flux_adj[iz][iy][ix][ja][igf] * qw;
-            scalar_flux_fwd[iz][iy][ix][igf] += ffwd;
-            scalar_flux_adj[iz][iy][ix][igf] += fadj;
-            scalar_flux_con[iz][iy][ix][igf] += ffwd * fadj;
+  multi_array<double, 4> scalar_flux_fwd{extents[ngf][nz][ny][nx]};
+  multi_array<double, 4> scalar_flux_adj{extents[ngf][nz][ny][nx]};
+  multi_array<double, 4> scalar_flux_con{extents[ngf][nz][ny][nx]};
+  for (int igf = 0; igf < ngf; igf++) {                  // Energy index
+    for (int iz = 0; iz < nz; iz++) {                    // Z mesh index
+      for (int iy = 0; iy < ny; iy++) {                  // Y mesh index
+        for (int ix = 0; ix < nx; ix++) {                // X mesh index
+          for (int ia = 0; ia < na; ia++) {              // Angle index
+            double qw = quadrature_weights[ia] / FOURPI; // Quadrature weight
+            int ja = reverse_angle_map[ia];              // Reverse angle index
+            double ffwd = angular_flux_fwd[igf][iz][iy][ix][ia] * qw;
+            double fadj = angular_flux_adj[igf][iz][iy][ix][ja] * qw;
+            scalar_flux_fwd[igf][iz][iy][ix] += ffwd;
+            scalar_flux_adj[igf][iz][iy][ix] += fadj;
+            scalar_flux_con[igf][iz][iy][ix] += ffwd * fadj;
           }
         }
       }
@@ -226,18 +243,16 @@ int main() {
 
   // Calculate cross sections for mixed materials
   TIME_START("Calculating cross sections for mixed materials...");
-  multi_array<double, 2> sigma_t_mixed{extents[n_mix][ngx]};
-  multi_array<double, 3> sigma_s_mixed{extents[n_mix][ngx][ngx]};
-  for (int i_mix = 0; i_mix < n_mix; i_mix++) { // Mixed material index
-    for (int im = 0; im < nm; im++) {           // Material index
-      double vol_frac = mixtable[i_mix][im];    // Volume fraction
-      if (vol_frac == 0.0)
-        continue;
-      for (int igx = 0; igx < ngx; igx++) { // Energy index
-        sigma_t_mixed[i_mix][igx] += sigma_t[im][igx] * vol_frac;
-        for (int jgx = 0; jgx < ngx; jgx++) { // Scattering energy index
-          sigma_s_mixed[i_mix][igx][jgx] += sigma_s[im][igx][jgx] * vol_frac;
-        }
+  multi_array<double, 2> sigma_t_mixed{extents[nmix][ngx]};
+  multi_array<double, 3> sigma_s_mixed{extents[nmix][ngx][ngx]};
+  for (int i = 0; i < mixtable.shape()[0]; i++) { // Mix table entry index
+    int imix = mixtable[i].row;                   // Mixed material index
+    int im = mixtable[i].col;                     // Pure material index
+    double vol_frac = mixtable[i].val;            // Volume fraction
+    for (int igx = 0; igx < ngx; igx++) {         // Energy index
+      sigma_t_mixed[imix][igx] += sigma_t[im][igx] * vol_frac;
+      for (int jgx = 0; jgx < ngx; jgx++) { // Scattering energy index
+        sigma_s_mixed[imix][igx][jgx] += sigma_s[im][igx][jgx] * vol_frac;
       }
     }
   }
@@ -245,16 +260,16 @@ int main() {
 
   // Calculate perturbations in cross sections
   TIME_START("Calculating perturbations in cross sections...");
-  multi_array<double, 3> sigma_t_pert{extents[n_mix][nm][ngx]};
-  multi_array<double, 4> sigma_s_pert{extents[n_mix][nm][ngx][ngx]};
-  for (int i_mix = 0; i_mix < n_mix; i_mix++) { // Mixed material index
-    for (int im = 0; im < nm; im++) {           // Material index
-      for (int igx = 0; igx < ngx; igx++) {     // Energy index
-        sigma_t_pert[i_mix][im][igx] =
-            sigma_t[im][igx] - sigma_t_mixed[i_mix][igx];
+  multi_array<double, 3> sigma_t_pert{extents[nmix][nm][ngx]};
+  multi_array<double, 4> sigma_s_pert{extents[nmix][nm][ngx][ngx]};
+  for (int imix = 0; imix < nmix; imix++) { // Mixed material index
+    for (int im = 0; im < nm; im++) {       // Material index
+      for (int igx = 0; igx < ngx; igx++) { // Energy index
+        sigma_t_pert[imix][im][igx] =
+            sigma_t[im][igx] - sigma_t_mixed[imix][igx];
         for (int jgx = 0; jgx < ngx; jgx++) { // Scattering energy index
-          sigma_s_pert[i_mix][im][igx][jgx] =
-              sigma_s[im][igx][jgx] - sigma_s_mixed[i_mix][igx][jgx];
+          sigma_s_pert[imix][im][igx][jgx] =
+              sigma_s[im][igx][jgx] - sigma_s_mixed[imix][igx][jgx];
         }
       }
     }
@@ -263,36 +278,27 @@ int main() {
 
   // Calculate current
   TIME_START("Calculating current...");
-  multi_array<double, 5> current_fwd{extents[nz][ny][nx][ngf][3]};
-  multi_array<double, 5> current_adj{extents[nz][ny][nx][ngf][3]};
-  multi_array<double, 5> current_con{extents[nz][ny][nx][ngf][3]};
-  for (int iz = 0; iz < nz; iz++) {                    // Z mesh index
-    for (int iy = 0; iy < ny; iy++) {                  // Y mesh index
-      for (int ix = 0; ix < nx; ix++) {                // X mesh index
-        for (int ia = 0; ia < na; ia++) {              // Angle index
-          double qw = quadrature_weights[ia] / FOURPI; // Quadrature weight
-          for (int igf = 0; igf < ngf; igf++) {        // Energy index
-            double affwd = angular_flux_fwd[iz][iy][ix][ia][igf] * qw;
-            double afadj = angular_flux_adj[iz][iy][ix][ia][igf] * qw;
+  multi_array<double, 5> current_fwd{extents[ngf][nz][ny][nx][3]};
+  multi_array<double, 5> current_adj{extents[ngf][nz][ny][nx][3]};
+  multi_array<double, 5> current_con{extents[ngf][nz][ny][nx][3]};
+  for (int igf = 0; igf < ngf; igf++) {                  // Energy index
+    for (int iz = 0; iz < nz; iz++) {                    // Z mesh index
+      for (int iy = 0; iy < ny; iy++) {                  // Y mesh index
+        for (int ix = 0; ix < nx; ix++) {                // X mesh index
+          for (int ia = 0; ia < na; ia++) {              // Angle index
+            double qw = quadrature_weights[ia] / FOURPI; // Quadrature weight
+            double affwd = angular_flux_fwd[igf][iz][iy][ix][ia] * qw;
+            double afadj = angular_flux_adj[igf][iz][iy][ix][ia] * qw;
             for (int id = 0; id < 3; id++) { // Dimension index
-              current_fwd[iz][iy][ix][igf][id] +=
-                  affwd * quadrature_angles[ia][id];
-              current_adj[iz][iy][ix][igf][id] +=
-                  afadj * quadrature_angles[ia][id];
+              double qa = quadrature_angles[ia][id];
+              current_fwd[igf][iz][iy][ix][id] += affwd * qa;
+              current_adj[igf][iz][iy][ix][id] += afadj * qa;
             }
           }
-        }
-      }
-    }
-  }
-  for (int iz = 0; iz < nz; iz++) {
-    for (int iy = 0; iy < ny; iy++) {
-      for (int ix = 0; ix < nx; ix++) {
-        for (int igf = 0; igf < ngf; igf++) {
           for (int id = 0; id < 3; id++) {
-            current_con[iz][iy][ix][igf][id] =
-                current_fwd[iz][iy][ix][igf][id] *
-                current_adj[iz][iy][ix][igf][id];
+            current_con[igf][iz][iy][ix][id] =
+                current_fwd[igf][iz][iy][ix][id] *
+                current_adj[igf][iz][iy][ix][id];
           }
         }
       }
@@ -303,19 +309,19 @@ int main() {
   // Calculate dR using angular flux
   TIME_START("Calculating dR...");
   multi_array<double, 4> dR{extents[nm][nz][ny][nx]};
-  for (int im = 0; im < nm; im++) {       // Material index
+  for (int im = 0; im < nm; im++) {       // Pure material index
     for (int iz = 0; iz < nz; iz++) {     // Z mesh index
       for (int iy = 0; iy < ny; iy++) {   // Y mesh index
         for (int ix = 0; ix < nx; ix++) { // X mesh index
-          int i_mix = matids[iz][iy][ix]; // Mixed material index
+          int imix = matids[iz][iy][ix];  // Mixed material index
           // Total component of dR
           double dR_t = 0.0;
           for (int igf = 0; igf < ngf; igf++) { // Energy index (in flux data)
             int igx = igf + g0; // Energy index (in cross section data)
             // Scalar contributon flux
-            double sfc = scalar_flux_con[iz][iy][ix][igf];
+            double sfc = scalar_flux_con[igf][iz][iy][ix];
             // Perturbation in total cross section
-            double dst = sigma_t_pert[i_mix][im][igx];
+            double dst = sigma_t_pert[imix][im][igx];
             dR_t += sfc * dst;
           }
           // Scattering component of dR
@@ -323,13 +329,13 @@ int main() {
           for (int igf = 0; igf < ngf; igf++) { // Energy index (in flux data)
             int igx = igf + g0; // Energy index (in cross section data)
             // Scalar adjoint flux (at E)
-            double sfa = scalar_flux_adj[iz][iy][ix][igf];
+            double sfa = scalar_flux_adj[igf][iz][iy][ix];
             for (int jgf = 0; jgf < ngf; jgf++) { // E' index (in flux data)
               int jgx = jgf + g0; // E' index (in cross section data)
               // Perturbation in scattering cross section (E' -> E)
-              double dss = sigma_s_pert[i_mix][im][igx][jgx];
+              double dss = sigma_s_pert[imix][im][igx][jgx];
               // Scalar forward flux (at E')
-              double sff = scalar_flux_fwd[iz][iy][ix][jgf];
+              double sff = scalar_flux_fwd[jgf][iz][iy][ix];
               dR_s += dss * sff * sfa;
             }
           }

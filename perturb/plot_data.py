@@ -50,136 +50,182 @@ def main():
     plot_all(data)
 
 def read_hdf5():
+    key_dict = {
+        'fwd_solution/denovo-forward.inp.h5':
+            {'group_bounds_n'    : 'group_bounds_n'           ,
+             'group_bounds_p'    : 'group_bounds_p'           ,
+             'mixtable'          : 'mixtable'                 ,
+             'matids'            : 'matids'                   ,
+             'source_spectra'    : 'volsrc/spectra'           ,
+             'source_strength'   : 'volsrc/strength'          ,
+             'source_ids'        : 'volsrc/ids'               },
+        'adj_solution/denovo-adjoint.inp.h5':
+            {'response_spectra'  : 'volsrc/spectra'           ,
+             'response_strength' : 'volsrc/strength'          ,
+             'response_ids'      : 'volsrc/ids'               },
+        'fwd_solution/denovo-forward.out.h5':
+            {'mesh_x'            : 'denovo/mesh_x'            ,
+             'mesh_y'            : 'denovo/mesh_y'            ,
+             'mesh_z'            : 'denovo/mesh_z'            ,
+             'mesh_g'            : 'denovo/mesh_g'            ,
+             'quadrature_angles' : 'denovo/quadrature_angles' ,
+             'quadrature_weights': 'denovo/quadrature_weights'},
+        'adj_solution/denovo-adjoint.out.h5': {},
+        'custom_output/data1.h5'            :
+            {'mat_names'         : 'mat_names'                ,
+             'sigma_t'           : 'sigma_t'                  ,
+             'sigma_s'           : 'sigma_s'                  },
+        'custom_output/data3.h5'            :
+            {'reverse_angle_map' : 'reverse_angle_map'        ,
+             'source'            : 'source'                   ,
+             'response'          : 'response'                 ,
+             'scalar_flux_fwd'   : 'scalar_flux_fwd'          ,
+             'scalar_flux_adj'   : 'scalar_flux_adj'          ,
+             'scalar_flux_con'   : 'scalar_flux_con'          ,
+             'sigma_t_mixed'     : 'sigma_t_mixed'            ,
+             'sigma_s_mixed'     : 'sigma_s_mixed'            ,
+             'sigma_t_pert'      : 'sigma_t_pert'             ,
+             'sigma_s_pert'      : 'sigma_s_pert'             ,
+             'current_fwd'       : 'current_fwd'              ,
+             'current_adj'       : 'current_adj'              ,
+             'current_con'       : 'current_con'              ,
+             'dR'                : 'dR'                       }
+    }
+
     data = {}
-    for fname in os.listdir('custom_output'):
-        if not fname.endswith('.h5'): continue
-        print('Reading %s' % (fname))
-        hf = h5py.File('custom_output/%s' % (fname), 'r')
-        for key in hf.keys():
-            if key.startswith('angular'): continue
-            data[key] = np.array(hf[key])
+    for fname in key_dict.keys():
+        hf = h5py.File(fname, 'r')
+        for key, key_h5 in key_dict[fname].items(): data[key] = hf[key_h5][()]
     return data
 
 def plot_all(data):
-    nm = data['mix_table'      ].shape[1]  # Number of pure materials
-    nz = data['scalar_flux_fwd'].shape[0]  # Number of Z intervals
-
-    g0 = data['mesh_g'][0]  # First energy group
-
-    x_vals = data['mesh_x']  # Horizontal direction
-    y_vals = data['mesh_y']  # Vertical direction
-
-    hz = nz // 2  # Use the middle Z slice
+    nm     = data['dR'].shape[0]  # Number of pure materials
+    nz     = data['dR'].shape[1]  # Number of Z intervals
+    g0     = data['mesh_g'][0]    # First energy group
+    x_vals = data['mesh_x']       # Horizontal direction
+    y_vals = data['mesh_y']       # Vertical direction
+    hz     = nz // 2              # Use the middle Z slice
 
     # Plot spectra
-    plot_spectra(data['source_spectrum'], data['response_spectrum'])
+    plot_spectra(data['source_spectra'], data['response_spectra'])
 
     # All future drawn lines should be black
-    plt.rcParams['axes.prop_cycle' ] = cycler(color=['k'])
+    plt.rcParams['axes.prop_cycle'] = cycler(color=['k'])
 
     # Plot material map
-    plot_data = data['material_map'][hz, :, :]
+    plot_data = data['matids'][hz, :, :]
     plot_mask = np.where(plot_data != 14)
-    title = 'Material Map'
-    fname = 'material_map.png'
-    plot_map(plot_data, x_vals, y_vals, title, fname, 'mats',
-              mat_names=data['mat_names'])
+    plot_map(plot_data,
+             x_vals, y_vals,
+             'Material Map',
+             'material_map.png',
+             'mats',
+             mat_names=data['mat_names'])
 
     # Plot total source
-    plot_data = np.sum(data['source'][hz, :, :, :], 2)
-    title = 'Source (Total)'
-    fname = 'source_total.png'
-    plot_map(plot_data, x_vals, y_vals, title, fname, 'lin')
+    plot_map(np.sum(data['source'][:, hz, :, :], 0),
+             x_vals, y_vals,
+             'Source (Total)',
+             'source_total.png',
+             'lin')
 
     # Plot total response
-    plot_data = np.sum(data['response'][hz, :, :, :], 2)
-    title = 'Response (Total)'
-    fname = 'response_total.png'
-    plot_map(plot_data, x_vals, y_vals, title, fname, 'lin')
+    plot_map(np.sum(data['response'][:, hz, :, :], 0),
+             x_vals, y_vals,
+             'Response (Total)',
+             'response_total.png',
+             'lin')
 
     # Plot total forward flux
-    plot_data = np.sum(data['scalar_flux_fwd'][hz, :, :, :], 2)
-    title = 'Forward Flux (Total)'
-    fname = 'scalar_flux_fwd_total.png'
-    plot_map(plot_data, x_vals, y_vals, title, fname, 'log')
+    plot_map(np.sum(data['scalar_flux_fwd'][:, hz, :, :], 0),
+             x_vals, y_vals,
+             'Forward Flux (Total)',
+             'scalar_flux_fwd_total.png',
+             'log')
 
     # Plot total adjoint flux
-    plot_data = np.sum(data['scalar_flux_adj'][hz, :, :, :], 2)
-    title = 'Adjoint Flux (Total)'
-    fname = 'scalar_flux_adj_total.png'
-    plot_map(plot_data, x_vals, y_vals, title, fname, 'log')
+    plot_map(np.sum(data['scalar_flux_adj'][:, hz, :, :], 0),
+             x_vals, y_vals,
+             'Adjoint Flux (Total)',
+             'scalar_flux_adj_total.png',
+             'log')
 
     # Plot total contributon flux
-    plot_data = np.sum(data['scalar_flux_con'][hz, :, :, :], 2)
-    title = 'Contributon Flux (Total)'
-    fname = 'scalar_flux_con_total.png'
-    plot_map(plot_data, x_vals, y_vals, title, fname, 'log')
+    plot_map(np.sum(data['scalar_flux_con'][:, hz, :, :], 0),
+             x_vals, y_vals,
+             'Contributon Flux (Total)',
+             'scalar_flux_con_total.png',
+             'log')
 
     # Plot total forward current
-    plot_data = np.sum(data['current_fwd'][hz, :, :, :, :2], 2)
-    title = 'Forward Current (Total)'
-    fname = 'current_fwd_total.png'
-    plot_quiver(plot_data, x_vals, y_vals, title, fname)
+    plot_quiver(np.sum(data['current_fwd'][:, hz, :, :, :2], 0),
+                x_vals, y_vals,
+                'Forward Current (Total)',
+                'current_fwd_total.png')
 
     # Plot total adjoint current
-    plot_data = np.sum(data['current_adj'][hz, :, :, :, :2], 2)
-    title = 'Adjoint Current (Total)'
-    fname = 'current_adj_total.png'
-    plot_quiver(plot_data, x_vals, y_vals, title, fname)
+    plot_quiver(np.sum(data['current_adj'][:, hz, :, :, :2], 0),
+                x_vals, y_vals,
+                'Adjoint Current (Total)',
+                'current_adj_total.png')
 
     # Plot total contributon current
-    plot_data = np.sum(data['current_con'][hz, :, :, :, :2], 2)
-    title = 'Contributon Current (Total)'
-    fname = 'current_con_total.png'
-    plot_quiver(plot_data, x_vals, y_vals, title, fname)
+    plot_quiver(np.sum(data['current_con'][:, hz, :, :, :2], 0),
+                x_vals, y_vals,
+                'Contributon Current (Total)',
+                'current_con_total.png')
 
     # Plots for the fast group (2) and thermal group (25)
     for igx in [2, 25]:
         igf = igx - g0
 
         # Forward flux
-        plot_data = data['scalar_flux_fwd'][hz, :, :, igf]
-        title = 'Forward Flux (Group %u)' % (igx)
-        fname = 'scalar_flux_fwd_g%02u.png'  % (igx)
-        plot_map(plot_data, x_vals, y_vals, title, fname, 'log')
+        plot_map(data['scalar_flux_fwd'][igf, hz, :, :],
+                 x_vals, y_vals,
+                 'Forward Flux (Group %u)'   % (igx),
+                 'scalar_flux_fwd_g%02u.png' % (igx),
+                 'log')
 
         # Adjoint flux
-        plot_data = data['scalar_flux_adj'][hz, :, :, igf]
-        title = 'Adjoint Flux (Group %u)' % (igx)
-        fname = 'scalar_flux_adj_g%02u.png'  % (igx)
-        plot_map(plot_data, x_vals, y_vals, title, fname, 'log')
+        plot_map(data['scalar_flux_adj'][igf, hz, :, :],
+                 x_vals, y_vals,
+                 'Adjoint Flux (Group %u)'   % (igx),
+                 'scalar_flux_adj_g%02u.png' % (igx),
+                 'log')
 
         # Contributon flux
-        plot_data = data['scalar_flux_con'][hz, :, :, igf]
-        title = 'Contributon Flux (Group %u)' % (igx)
-        fname = 'scalar_flux_con_g%02u.png'  % (igx)
-        plot_map(plot_data, x_vals, y_vals, title, fname, 'log')
+        plot_map(data['scalar_flux_con'][igf, hz, :, :],
+                 x_vals, y_vals,
+                 'Contributon Flux (Group %u)' % (igx),
+                 'scalar_flux_con_g%02u.png'   % (igx),
+                 'log')
 
         # Forward current
-        plot_data = data['current_fwd'][hz, :, :, igf, :2]
-        title = 'Forward Current (Group %u)' % (igx)
-        fname = 'current_fwd_g%02u.png'  % (igx)
-        plot_quiver(plot_data, x_vals, y_vals, title, fname)
+        plot_quiver(data['current_fwd'][igf, hz, :, :, :2],
+                    x_vals, y_vals,
+                    'Forward Current (Group %u)' % (igx),
+                    'current_fwd_g%02u.png'      % (igx))
 
         # Adjoint current
-        plot_data = data['current_adj'][hz, :, :, igf, :2]
-        title = 'Adjoint Current (Group %u)' % (igx)
-        fname = 'current_adj_g%02u.png'  % (igx)
-        plot_quiver(plot_data, x_vals, y_vals, title, fname)
+        plot_quiver(data['current_adj'][igf, hz, :, :, :2],
+                    x_vals, y_vals,
+                    'Adjoint Current (Group %u)' % (igx),
+                    'current_adj_g%02u.png'      % (igx))
 
         # Contributon current
-        plot_data = data['current_con'][hz, :, :, igf, :2]
-        title = 'Contributon Current (Group %u)' % (igx)
-        fname = 'current_con_g%02u.png'  % (igx)
-        plot_quiver(plot_data, x_vals, y_vals, title, fname)
+        plot_quiver(data['current_con'][igf, hz, :, :, :2],
+                    x_vals, y_vals,
+                    'Contributon Current (Group %u)' % (igx),
+                    'current_con_g%02u.png'          % (igx))
 
     # Plot dR for all materials
     for im in range(nm):
-        plot_data = data['dR'][im, hz, :, :]
-        title = (r'$\delta R$ for %s' %
-                 (mat_names_short[data['mat_names'][im].decode()]))
-        fname = 'dR_%02u.png' % (im)
-        plot_map(plot_data, x_vals, y_vals, title, fname, 'logplusminus',
+        mat_name_short = mat_names_short[data['mat_names'][im].decode()]
+        plot_map(data['dR'][im, hz, :, :],
+                 x_vals, y_vals,
+                 r'$\delta R$ for %s' % (mat_name_short),
+                 'dR_%02u.png' % (im),
+                 'logplusminus',
                  plot_mask=plot_mask)
 
 def plot_map(plot_data, x_vals, y_vals, title, fname, fmt, plot_mask=None,
@@ -323,10 +369,10 @@ def plot_spectra(source, response):
     fig.set_size_inches(8, 6)
 
     # Plot spectra
-    ng = len(source)
+    ng = source.shape[1]
     ebins = range(ng)
-    plt.bar(ebins, source  , label='Source'  )
-    plt.bar(ebins, response, label='Response')
+    plt.bar(ebins, source  [0, :], label='Source'  )
+    plt.bar(ebins, response[0, :], label='Response')
 
     # Formatting
     ax.set_xlim([-0.6, ng - 0.4])
