@@ -14,15 +14,11 @@ diff -rN -U0 src-3.0.3-vendor/python/advantg/driver.py src-3.0.3-perturb/python/
 --- src-3.0.3-vendor/python/advantg/driver.py
 +++ src-3.0.3-perturb/python/advantg/driver.py
 @@ -26,0 +27,2 @@
-+from perturbation import perturbation, print_vars
++from perturbation import perturbation
 +
-@@ -196,0 +199,7 @@
+@@ -196,0 +199,3 @@
 +
 +    # Perturbation
-+    s = print_vars.print_all(options, materials, anisn_lib, zaid_map, mglib,
-+                             model, solver_class, method, solutions, outputs)
-+    if not os.path.exists('custom_output'): os.makedirs('custom_output')
-+    with open('custom_output/vars.txt', 'wb') as writer: writer.write(s)
 +    perturbation.perturb(model, materials, solutions)
 diff -rN -U0 src-3.0.3-vendor/python/advantg/input.py src-3.0.3-perturb/python/advantg/input.py
 --- src-3.0.3-vendor/python/advantg/input.py
@@ -55,7 +51,7 @@ diff -rN -U0 src-3.0.3-vendor/python/advantg/perturbation/options.py src-3.0.3-p
 diff -rN -U0 src-3.0.3-vendor/python/advantg/perturbation/perturbation.py src-3.0.3-perturb/python/advantg/perturbation/perturbation.py
 --- src-3.0.3-vendor/python/advantg/perturbation/perturbation.py
 +++ src-3.0.3-perturb/python/advantg/perturbation/perturbation.py
-@@ -0,0 +1,71 @@
+@@ -0,0 +1,72 @@
 +import os
 +from itertools import product
 +import numpy as np
@@ -69,6 +65,7 @@ diff -rN -U0 src-3.0.3-vendor/python/advantg/perturbation/perturbation.py src-3.
 +@time_this.with_label("Writing additional information to HDF5")
 +def perturb(model, materials, solutions):
 +    # Open HDF5 file for writing
++    if not os.path.exists('custom_output'): os.makedirs('custom_output')
 +    hf = h5py.File('custom_output/data1.h5', 'w')
 +
 +    # Number of mesh intervals
@@ -127,245 +124,6 @@ diff -rN -U0 src-3.0.3-vendor/python/advantg/perturbation/perturbation.py src-3.
 +
 +    # Close HDF5 file
 +    hf.close()
-diff -rN -U0 src-3.0.3-vendor/python/advantg/perturbation/print_vars.py src-3.0.3-perturb/python/advantg/perturbation/print_vars.py
---- src-3.0.3-vendor/python/advantg/perturbation/print_vars.py
-+++ src-3.0.3-perturb/python/advantg/perturbation/print_vars.py
-@@ -0,0 +1,235 @@
-+import inspect
-+import numpy as np
-+
-+screen_width = 211
-+var_width = 51
-+
-+val_width = screen_width - var_width - 7
-+print_str = '%-' + str(var_width) + 's | %s\n'
-+
-+def format_output(s):
-+    if len(str(s)) > val_width: return str(s)[:val_width] + ' ...'
-+    else: return str(s)
-+
-+def print_title(title):
-+    s = ''
-+    s += '-' * screen_width + '\n'
-+    s += ' ' * ((screen_width - len(title)) / 2) + title + '\n'
-+    s += '-' * screen_width + '\n'
-+    s += '\n'
-+    return s
-+
-+def print_options(options):
-+    s = print_title('options')
-+    for i in sorted(options):
-+        a = options[i]
-+        for j in sorted(a):
-+            b = a[j]
-+            s += print_str % ('[\'%s\'][\'%s\']' % (i, j), format_output(b))
-+    s += '\n'
-+    return s
-+
-+def print_materials(materials):
-+    s = print_title('materials')
-+    if not materials:
-+        s += print_str % ('', format_output(a))
-+    for i, a in enumerate(materials):
-+        s += print_str % ('[%u]' % (i), format_output(a))
-+    s += '\n'
-+    return s
-+
-+def print_anisn_lib(anisn_lib):
-+    s = print_title('anisn_lib')
-+    for i in sorted(anisn_lib):
-+        a = anisn_lib[i]
-+        s += print_str % ('[\'%s\']' % (i), format_output(a))
-+    for i in sorted(vars(anisn_lib)):
-+        a = vars(anisn_lib)[i]
-+        s += print_str % ('.%s' % (i), format_output(a))
-+    s += '\n'
-+    return s
-+
-+def print_zaid_map(zaid_map):
-+    s = print_title('zaid_map')
-+    s += print_str % ('', format_output(zaid_map))
-+    s += '\n'
-+    return s
-+
-+def print_mglib(mglib):
-+    s = print_title('mglib')
-+    for i in sorted(mglib):
-+        a = mglib[i]
-+        s += print_str % ('[\'%s\']' % (i), format_output(a))
-+    for i in sorted(vars(mglib)):
-+        a = vars(mglib)[i]
-+        if not a:
-+            s += print_str % ('.%s' % (i), format_output(a))
-+            continue
-+        for j, b in enumerate(a):
-+            if not b:
-+                s += print_str % ('.%s[%u]' % (i, j), format_output(b))
-+                continue
-+            for k in sorted(vars(b)):
-+                c = vars(b)[k]
-+                if k == 'data':
-+                    s += print_str % ('.%s[%u].%s' % (i, j, k), format_output('<array of length %u (%u nonzero)>' % (len(c), np.sum(np.array(c) != 0))))
-+                else:
-+                    s += print_str % ('.%s[%u].%s' % (i, j, k), format_output(c))
-+    s += '\n'
-+    return s
-+
-+def print_model(model):
-+    s = print_title('model')
-+    for i in sorted(vars(model)):
-+        a = vars(model)[i]
-+        if i == 'cache':
-+            for j in sorted(a):
-+                b = a[j]
-+                if j == 'material_data':
-+                    for k in sorted(vars(b)):
-+                        c = vars(b)[k]
-+                        s += print_str % ('.%s[\'%s\'].%s' % (i, j, k), format_output(c))
-+                elif j == 'materials':
-+                    if not b:
-+                        s += print_str % ('.%s[\'%s\']' % (i, j), format_output(b))
-+                        continue
-+                    for k, c in enumerate(b):
-+                        s += print_str % ('.%s[\'%s\'][%u]' % (i, j, k), format_output(c))
-+                elif j == 'response_data':
-+                    for k, c in sorted(inspect.getmembers(b)):
-+                        if k.startswith('_'): continue
-+                        if not c:
-+                            s += print_str % ('.%s[\'%s\'].%s' % (i, j, k), format_output(c))
-+                            continue
-+                        for l, d in enumerate(c):
-+                            for m, e in sorted(inspect.getmembers(d)):
-+                                if m.startswith('_'): continue
-+                                s += print_str % ('.%s[\'%s\'].%s[%u].%s' % (i, j, k, l, m), format_output(e))
-+                else:
-+                    s += print_str % ('.%s/%s' % (i, j), format_output(b))
-+        elif i == 'groups':
-+            if not a:
-+                s += print_str % ('.%s' % (i), format_output(a))
-+                continue
-+            for j, b in enumerate(a):
-+                s += print_str % ('.%s[%u]' % (i, j), format_output(b))
-+        elif i == 'mesh':
-+            for j, b in sorted(inspect.getmembers(a)):
-+                if j.startswith('_'): continue
-+                if callable(b): continue
-+                s += print_str % ('.%s.%s' % (i, j), format_output(b))
-+        elif i == 'mglib':
-+            for j in sorted(a):
-+                b = a[j]
-+                s += print_str % ('.%s[\'%s\']' % (i, j), format_output(b))
-+            for j in sorted(vars(a)):
-+                b = vars(a)[j]
-+                if not b:
-+                    s += print_str % ('.%s.%s' % (i, j), format_output(b))
-+                    continue
-+                for k, c in enumerate(b):
-+                    s += print_str % ('.%s.%s[%s]' % (i, j, k), format_output(c))
-+        elif i == 'options':
-+            for j in sorted(a):
-+                b = a[j]
-+                s += print_str % ('.%s[\'%s\']' % (i, j), format_output(b))
-+        else:
-+            s += print_str % ('.%s' % (i), format_output(a))
-+    sources = model.map_sources()
-+    for i, a in sorted(inspect.getmembers(sources)):
-+        if i.startswith('_'): continue
-+        if not a:
-+            s += print_str % ('.map_sources().%s' % (i), format_output(a))
-+            continue
-+        for j, b in enumerate(a):
-+            for k, c in sorted(inspect.getmembers(b)):
-+                if k.startswith('_'): continue
-+                s += print_str % ('.map_sources().%s[%u].%s' % (i, j, k), format_output(c))
-+    s += '\n'
-+    return s
-+
-+def print_solver_class(solver_class):
-+    s = print_title('solver_class')
-+    for i, a in sorted(inspect.getmembers(solver_class)):
-+        if i.startswith('_'): continue
-+        if i == 'options':
-+            for j in sorted(a):
-+                b = a[j]
-+                s += print_str % ('.%s[\'%s\']' % (i, j), format_output(b))
-+        else:
-+            s += print_str % ('.%s' % (i), format_output(a))
-+    s += '\n'
-+    return s
-+
-+def print_method(method):
-+    s = print_title('method')
-+    for i in sorted(vars(method)):
-+        a = vars(method)[i]
-+        if i == 'calculator':
-+            for j in sorted(vars(a)):
-+                if j.startswith('_'): continue
-+                b = vars(a)[j]
-+                s += print_str % ('.%s.%s' % (i, j), format_output(b))
-+        if i == 'options':
-+            for j in sorted(a):
-+                b = a[j]
-+                s += print_str % ('.%s[\'%s\']' % (i, j), format_output(b))
-+        else:
-+            s += print_str % ('.%s' % (i), format_output(a))
-+    s += '\n'
-+    return s
-+
-+def print_solutions(solutions):
-+    s = print_title('solutions')
-+    for i in sorted(solutions):
-+        a = solutions[i]
-+        for j in sorted(vars(a)):
-+            b = vars(a)[j]
-+            if j == 'flux':
-+                s += print_str % ('[\'%s\'].%s' % (i, j), format_output('<array of length %u (%u nonzero)>' % (len(b), np.sum(np.array(b) != 0))))
-+            else:
-+                s += print_str % ('[\'%s\'].%s' % (i, j), format_output(b))
-+    s += '\n'
-+    return s
-+
-+def print_outputs(outputs):
-+    s = print_title('outputs')
-+    if not outputs:
-+        s += print_str % ('' % (i), format_output(outputs))
-+    for i, a in enumerate(outputs):
-+        for j in sorted(vars(a)):
-+            b = vars(a)[j]
-+            if j == 'options':
-+                for k in sorted(b):
-+                    c = b[k]
-+                    s += print_str % ('[%u].%s[\'%s\']' % (i, j, k), format_output(c))
-+            else:
-+                s += print_str % ('[%u].%s' % (i, j), format_output(b))
-+    s += '\n'
-+    return s
-+
-+def print_all(options, materials, anisn_lib, zaid_map, mglib, model, solver_class, method, solutions, outputs):
-+    s = ''
-+    s += print_options(options)
-+    s += print_materials(materials)
-+    s += print_anisn_lib(anisn_lib)
-+    s += print_zaid_map(zaid_map)
-+    s += print_mglib(mglib)
-+    s += print_model(model)
-+    s += print_solver_class(solver_class)
-+    s += print_method(method)
-+    s += print_solutions(solutions)
-+    s += print_outputs(outputs)
-+    return s
-+
-+def print_mix_table(mix_table):
-+    s = print_title('mix_table')
-+    for i in sorted(vars(mix_table)):
-+        a = vars(mix_table)[i]
-+        if i == '_rows':
-+            for j, b in enumerate(a):
-+                s += print_str % ('.%s[%s]' % (i, j), format_output(b))
-+        else:
-+            s += print_str % ('.%s' % (i), format_output(a))
-+    s += '\n'
-+    return s
 diff -rN -U0 src-3.0.3-vendor/python/setup.py src-3.0.3-perturb/python/setup.py
 --- src-3.0.3-vendor/python/setup.py
 +++ src-3.0.3-perturb/python/setup.py
