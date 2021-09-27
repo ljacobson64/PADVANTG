@@ -1,18 +1,6 @@
-diff -rN -U0 src-3.0.3-vendor/cmake/config.cmake src-3.0.3-perturb/cmake/config.cmake
---- src-3.0.3-vendor/cmake/config.cmake
-+++ src-3.0.3-perturb/cmake/config.cmake
-@@ -3 +3 @@
--find_package(PythonInterp)
-+find_package(PythonInterp 2)
-diff -rN -U0 src-3.0.3-vendor/CMakeLists.txt src-3.0.3-perturb/CMakeLists.txt
---- src-3.0.3-vendor/CMakeLists.txt
-+++ src-3.0.3-perturb/CMakeLists.txt
-@@ -4 +4 @@
--project(ADVANTG CXX Fortran)
-+project(ADVANTG C CXX Fortran)
-diff -rN -U0 src-3.0.3-vendor/python/advantg/driver.py src-3.0.3-perturb/python/advantg/driver.py
---- src-3.0.3-vendor/python/advantg/driver.py
-+++ src-3.0.3-perturb/python/advantg/driver.py
+diff -rN -U0 3.0.3-vendor/driver.py 3.0.3-perturb/driver.py
+--- 3.0.3-vendor/driver.py
++++ 3.0.3-perturb/driver.py
 @@ -26,0 +27,2 @@
 +from perturbation import perturbation
 +
@@ -20,23 +8,23 @@ diff -rN -U0 src-3.0.3-vendor/python/advantg/driver.py src-3.0.3-perturb/python/
 +
 +    # Perturbation
 +    perturbation.perturb(model, materials, mglib)
-diff -rN -U0 src-3.0.3-vendor/python/advantg/input.py src-3.0.3-perturb/python/advantg/input.py
---- src-3.0.3-vendor/python/advantg/input.py
-+++ src-3.0.3-perturb/python/advantg/input.py
+diff -rN -U0 3.0.3-vendor/input.py 3.0.3-perturb/input.py
+--- 3.0.3-vendor/input.py
++++ 3.0.3-perturb/input.py
 @@ -15,0 +16 @@
 +import perturbation
 @@ -53 +54,2 @@
 -    ("solver",      Module(solvers.denovo,  {"solver" : "denovo"})   )
 +    ("solver",      Module(solvers.denovo,  {"solver" : "denovo"})   ),
 +    ("perturbation", Module(perturbation)                            )
-diff -rN -U0 src-3.0.3-vendor/python/advantg/perturbation/__init__.py src-3.0.3-perturb/python/advantg/perturbation/__init__.py
---- src-3.0.3-vendor/python/advantg/perturbation/__init__.py
-+++ src-3.0.3-perturb/python/advantg/perturbation/__init__.py
+diff -rN -U0 3.0.3-vendor/perturbation/__init__.py 3.0.3-perturb/perturbation/__init__.py
+--- 3.0.3-vendor/perturbation/__init__.py
++++ 3.0.3-perturb/perturbation/__init__.py
 @@ -0,0 +1 @@
 +from options import get_ui_fields, finalize_ui_data
-diff -rN -U0 src-3.0.3-vendor/python/advantg/perturbation/options.py src-3.0.3-perturb/python/advantg/perturbation/options.py
---- src-3.0.3-vendor/python/advantg/perturbation/options.py
-+++ src-3.0.3-perturb/python/advantg/perturbation/options.py
+diff -rN -U0 3.0.3-vendor/perturbation/options.py 3.0.3-perturb/perturbation/options.py
+--- 3.0.3-vendor/perturbation/options.py
++++ 3.0.3-perturb/perturbation/options.py
 @@ -0,0 +1,10 @@
 +from advantg.ui import UIPath
 +
@@ -48,9 +36,9 @@ diff -rN -U0 src-3.0.3-vendor/python/advantg/perturbation/options.py src-3.0.3-p
 +
 +def get_ui_fields(): return ui_fields
 +def finalize_ui_data(data, user_keys): return data
-diff -rN -U0 src-3.0.3-vendor/python/advantg/perturbation/perturbation.py src-3.0.3-perturb/python/advantg/perturbation/perturbation.py
---- src-3.0.3-vendor/python/advantg/perturbation/perturbation.py
-+++ src-3.0.3-perturb/python/advantg/perturbation/perturbation.py
+diff -rN -U0 3.0.3-vendor/perturbation/perturbation.py 3.0.3-perturb/perturbation/perturbation.py
+--- 3.0.3-vendor/perturbation/perturbation.py
++++ 3.0.3-perturb/perturbation/perturbation.py
 @@ -0,0 +1,72 @@
 +import os
 +from itertools import product
@@ -124,8 +112,3 @@ diff -rN -U0 src-3.0.3-vendor/python/advantg/perturbation/perturbation.py src-3.
 +
 +    # Close HDF5 file
 +    hf.close()
-diff -rN -U0 src-3.0.3-vendor/python/setup.py src-3.0.3-perturb/python/setup.py
---- src-3.0.3-vendor/python/setup.py
-+++ src-3.0.3-perturb/python/setup.py
-@@ -75,0 +76 @@
-+            "advantg.perturbation",

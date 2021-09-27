@@ -1,6 +1,4 @@
 *.pyc
 __pycache__
-/ADVANTG-*
-/mgxs
-/src-*-perturb
-/src-*-vendor
+/install
+/src

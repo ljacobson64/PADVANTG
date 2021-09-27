@@ -8,8 +8,7 @@ anisn_upscatter             False
 denovo_first_group          1
 denovo_last_group           26
 denovo_verbose              true
-#denovo_hdf5_angles         true  # ADVANTG 3.0.3
-denovo_write_angular_flux   true  # ADVANTG 3.2.0
+denovo_write_angular_flux   true
 
 mcnp_input                  mcnp.i
 mcnp_tallies                4
@@ -35,11 +34,11 @@ mcnp_material_names           4 "Air (Dry, Near Sea Level)"
                             369 "Zircaloy-4"
                             501 "Uranium-235"
 
-mesh_x                       -20.0     0.55    1.05    1.35    5.6     6.35    6.65    7.4     7.9    20.0
-mesh_x_ints                           21       1       1       4       1       1       1       1      12
-mesh_y                       -20.0   -12.5    -7.5    -5.0    -3.3    -3.0    -2.75    2.75    3.0     3.3     5.0     7.5    12.5    20.0
-mesh_y_ints                            7       5       3       2       1       1       6       1       1       2       3       5       7
-mesh_z                       -20.0   -12.5    -7.5    -5.0    -3.3    -3.0    -2.75    2.75    3.0     3.3     5.0     7.5    12.5    20.0
-mesh_z_ints                            7       5       3       2       1       1       6       1       1       2       3       5       7
+mesh_x                      -20.0   0.55  1.05  1.35  5.6   6.35  6.65  7.4   7.9  20.0
+mesh_x_ints                        21     1     1     4     1     1     1     1    12
+mesh_y                      -20.0 -12.5  -7.5  -5.0  -3.3  -3.0  -2.75  2.75  3.0   3.3   5.0   7.5  12.5  20.0
+mesh_y_ints                         7     5     3     2     1     1     6     1     1     2     3     5     7
+mesh_z                      -20.0 -12.5  -7.5  -5.0  -3.3  -3.0  -2.75  2.75  3.0   3.3   5.0   7.5  12.5  20.0
+mesh_z_ints                         7     5     3     2     1     1     6     1     1     2     3     5     7
 
 # 43 * 44 * 44 = 83,248
