@@ -19,7 +19,7 @@ diff -rN -U0 src-3.0.3-vendor/python/advantg/driver.py src-3.0.3-perturb/python/
 @@ -196,0 +199,3 @@
 +
 +    # Perturbation
-+    perturbation.perturb(model, materials)
++    perturbation.perturb(model, materials, mglib)
 diff -rN -U0 src-3.0.3-vendor/python/advantg/input.py src-3.0.3-perturb/python/advantg/input.py
 --- src-3.0.3-vendor/python/advantg/input.py
 +++ src-3.0.3-perturb/python/advantg/input.py
@@ -63,7 +63,7 @@ diff -rN -U0 src-3.0.3-vendor/python/advantg/perturbation/perturbation.py src-3.
 +    hf.create_dataset(name, data=data)
 +
 +@time_this.with_label("Writing additional information to HDF5")
-+def perturb(model, materials):
++def perturb(model, materials, mglib):
 +    # Open HDF5 file for writing
 +    if not os.path.exists('custom_output'): os.makedirs('custom_output')
 +    hf = h5py.File('custom_output/xs.h5', 'w')
@@ -74,7 +74,7 @@ diff -rN -U0 src-3.0.3-vendor/python/advantg/perturbation/perturbation.py src-3.
 +    nz = len(model.mesh.z) - 1
 +
 +    # Total number of energy groups in cross sections (i.e. 46 for 27n19g)
-+    igm = model.mglib['igm']
++    igm = mglib['igm']
 +
 +    # Source data
 +    source = model.map_sources().volume_sources[0]
@@ -113,7 +113,7 @@ diff -rN -U0 src-3.0.3-vendor/python/advantg/perturbation/perturbation.py src-3.
 +    sigma_s = np.zeros((num_mats, igm, igm))
 +    for i, mat in enumerate(materials):
 +        # Cross sections
-+        xs = model.mglib.macro_xs[i]
++        xs = mglib.macro_xs[i]
 +        # Total cross section
 +        sigma_t[i, :] = [xs.total(x) for x in xrange(xs.igm)]
 +        # Scattering matrix (g = initial group, gp = final group)

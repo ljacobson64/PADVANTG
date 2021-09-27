@@ -13,7 +13,7 @@ diff -rN -U0 src-3.2.0-vendor/python/advantg/driver.py src-3.2.0-perturb/python/
 @@ -192,0 +195,3 @@
 +
 +    # Perturbation
-+    perturbation.perturb(model, materials)
++    perturbation.perturb(materials, mglib)
 diff -rN -U0 src-3.2.0-vendor/python/advantg/input.py src-3.2.0-perturb/python/advantg/input.py
 --- src-3.2.0-vendor/python/advantg/input.py
 +++ src-3.2.0-perturb/python/advantg/input.py
@@ -56,7 +56,7 @@ diff -rN -U0 src-3.2.0-vendor/python/advantg/perturbation/perturbation.py src-3.
 +    hf.create_dataset(name, data=data)
 +
 +@time_this.with_label("Writing additional information to HDF5")
-+def perturb(model, materials):
++def perturb(materials, mglib):
 +    # Open HDF5 file for writing
 +    if not os.path.exists('custom_output'): os.makedirs('custom_output')
 +    hf = h5py.File('custom_output/xs.h5', 'w')
@@ -66,13 +66,13 @@ diff -rN -U0 src-3.2.0-vendor/python/advantg/perturbation/perturbation.py src-3.
 +    add_array_hdf5(hf, 'mat_names', mat_names)
 +
 +    # Cross sections for pure materials
-+    igm = model.mglib['igm']
-+    num_mats  = len(materials)
++    igm = mglib['igm']
++    num_mats = len(materials)
 +    sigma_t = np.zeros((num_mats, igm     ))
 +    sigma_s = np.zeros((num_mats, igm, igm))
 +    for i, mat in enumerate(materials):
 +        # Cross sections
-+        xs = model.mglib.macro_xs[i]
++        xs = mglib.macro_xs[i]
 +        # Total cross section
 +        sigma_t[i, :] = [xs.total(x) for x in xrange(xs.igm)]
 +        # Scattering matrix (g = initial group, gp = final group)
