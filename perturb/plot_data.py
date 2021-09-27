@@ -71,11 +71,11 @@ def read_hdf5():
              'quadrature_angles' : 'denovo/quadrature_angles' ,
              'quadrature_weights': 'denovo/quadrature_weights'},
         'adj_solution/denovo-adjoint.out.h5': {},
-        'custom_output/data1.h5'            :
+        'custom_output/xs.h5'               :
             {'mat_names'         : 'mat_names'                ,
              'sigma_t'           : 'sigma_t'                  ,
              'sigma_s'           : 'sigma_s'                  },
-        'custom_output/data3.h5'            :
+        'custom_output/data.h5'             :
             {'reverse_angle_map' : 'reverse_angle_map'        ,
              'source'            : 'source'                   ,
              'response'          : 'response'                 ,

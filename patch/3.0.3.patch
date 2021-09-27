@@ -19,7 +19,7 @@ diff -rN -U0 src-3.0.3-vendor/python/advantg/driver.py src-3.0.3-perturb/python/
 @@ -196,0 +199,3 @@
 +
 +    # Perturbation
-+    perturbation.perturb(model, materials, solutions)
++    perturbation.perturb(model, materials)
 diff -rN -U0 src-3.0.3-vendor/python/advantg/input.py src-3.0.3-perturb/python/advantg/input.py
 --- src-3.0.3-vendor/python/advantg/input.py
 +++ src-3.0.3-perturb/python/advantg/input.py
@@ -59,14 +59,14 @@ diff -rN -U0 src-3.0.3-vendor/python/advantg/perturbation/perturbation.py src-3.
 +
 +from advantg.utils import time_this
 +
-+def add_array(hf, name, data):
-+    hf.create_dataset(name, data=data, compression='gzip', compression_opts=0)
++def add_array_hdf5(hf, name, data):
++    hf.create_dataset(name, data=data)
 +
 +@time_this.with_label("Writing additional information to HDF5")
-+def perturb(model, materials, solutions):
++def perturb(model, materials):
 +    # Open HDF5 file for writing
 +    if not os.path.exists('custom_output'): os.makedirs('custom_output')
-+    hf = h5py.File('custom_output/data1.h5', 'w')
++    hf = h5py.File('custom_output/xs.h5', 'w')
 +
 +    # Number of mesh intervals
 +    nx = len(model.mesh.x) - 1
@@ -78,19 +78,19 @@ diff -rN -U0 src-3.0.3-vendor/python/advantg/perturbation/perturbation.py src-3.
 +
 +    # Source data
 +    source = model.map_sources().volume_sources[0]
-+    add_array(hf, 'source_indices'  , source.indices  )
-+    add_array(hf, 'source_strengths', source.strengths)
-+    add_array(hf, 'source_spectrum' , source.spectrum )
++    add_array_hdf5(hf, 'source_indices'  , source.indices  )
++    add_array_hdf5(hf, 'source_strengths', source.strengths)
++    add_array_hdf5(hf, 'source_spectrum' , source.spectrum )
 +
 +    # Response data
 +    response = model.cache['response_data'].volume_sources[0]
-+    add_array(hf, 'response_indices'  , response.indices  )
-+    add_array(hf, 'response_strengths', response.strengths)
-+    add_array(hf, 'response_spectrum' , response.spectrum )
++    add_array_hdf5(hf, 'response_indices'  , response.indices  )
++    add_array_hdf5(hf, 'response_strengths', response.strengths)
++    add_array_hdf5(hf, 'response_spectrum' , response.spectrum )
 +
 +    # List of material names
 +    mat_names = np.array([mat.name for mat in materials])
-+    add_array(hf, 'mat_names', mat_names)
++    add_array_hdf5(hf, 'mat_names', mat_names)
 +
 +    # Mix table
 +    mix_table = model.cache['material_data'].mix_table._rows
@@ -99,14 +99,14 @@ diff -rN -U0 src-3.0.3-vendor/python/advantg/perturbation/perturbation.py src-3.
 +    mix_table_large = np.zeros((num_mixed, num_mats))
 +    for i_mix, fracs in enumerate(mix_table):
 +        for i_mat, frac in fracs: mix_table_large[i_mix, i_mat] = frac
-+    add_array(hf, 'mix_table', mix_table_large)
++    add_array_hdf5(hf, 'mix_table', mix_table_large)
 +
 +    # Material map
 +    material_map = np.zeros((nz, ny, nx), dtype=np.int32)
 +    for iz, iy, ix in product(xrange(nz), xrange(ny), xrange(nx)):
 +        ind = model.cache['material_data'].ids.from_ijk(ix, iy, iz)
 +        material_map[iz, iy, ix] = ind
-+    add_array(hf, 'material_map', material_map)
++    add_array_hdf5(hf, 'material_map', material_map)
 +
 +    # Cross sections for pure materials
 +    sigma_t = np.zeros((num_mats, igm     ))
@@ -119,8 +119,8 @@ diff -rN -U0 src-3.0.3-vendor/python/advantg/perturbation/perturbation.py src-3.
 +        # Scattering matrix (g = initial group, gp = final group)
 +        sigma_s[i, :, :] = [[xs.scatter(gp, g) for gp in xrange(xs.igm)]
 +                            for g in xrange(xs.igm)]
-+    add_array(hf, 'sigma_t', sigma_t)
-+    add_array(hf, 'sigma_s', sigma_s)
++    add_array_hdf5(hf, 'sigma_t', sigma_t)
++    add_array_hdf5(hf, 'sigma_s', sigma_s)
 +
 +    # Close HDF5 file
 +    hf.close()

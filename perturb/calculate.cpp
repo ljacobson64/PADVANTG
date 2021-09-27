@@ -98,12 +98,12 @@ int main() {
   std::string fname_adj_inp = "adj_solution/denovo-adjoint.inp.h5";
   std::string fname_fwd_out = "fwd_solution/denovo-forward.out.h5";
   std::string fname_adj_out = "adj_solution/denovo-adjoint.out.h5";
-  std::string fname_custom = "custom_output/data1.h5";
+  std::string fname_xs = "custom_output/xs.h5";
   H5::H5File hf_fwd_inp(fname_fwd_inp.c_str(), H5F_ACC_RDONLY);
   H5::H5File hf_adj_inp(fname_adj_inp.c_str(), H5F_ACC_RDONLY);
   H5::H5File hf_fwd_out(fname_fwd_out.c_str(), H5F_ACC_RDONLY);
   H5::H5File hf_adj_out(fname_adj_out.c_str(), H5F_ACC_RDONLY);
-  H5::H5File hf_custom(fname_custom.c_str(), H5F_ACC_RDONLY);
+  H5::H5File hf_xs(fname_xs.c_str(), H5F_ACC_RDONLY);
 
   // Create arrays for data to be read from HDF5
   multi_array<int, 1> mesh_g;
@@ -136,8 +136,8 @@ int main() {
   read_hdf5_array(hf_fwd_out, "denovo/quadrature_weights", quadrature_weights);
   read_hdf5_array(hf_fwd_out, "denovo/angular_flux", angular_flux_fwd);
   read_hdf5_array(hf_adj_out, "denovo/angular_flux", angular_flux_adj);
-  read_hdf5_array(hf_custom, "sigma_t", sigma_t);
-  read_hdf5_array(hf_custom, "sigma_s", sigma_s);
+  read_hdf5_array(hf_xs, "sigma_t", sigma_t);
+  read_hdf5_array(hf_xs, "sigma_s", sigma_s);
   TIME_END();
 
   // +--------------------------------------------------------------------+
@@ -349,7 +349,7 @@ int main() {
 
   // Write data to HDF5
   TIME_START("Writing data to HDF5...");
-  std::string fnameo = "custom_output/data3.h5";
+  std::string fnameo = "custom_output/data.h5";
   H5::H5File hfo(fnameo, H5F_ACC_TRUNC);
   write_hdf5_array(hfo, "reverse_angle_map", reverse_angle_map);
   write_hdf5_array(hfo, "source", source);
