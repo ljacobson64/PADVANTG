@@ -252,7 +252,7 @@ def plot_map(plot_data, x_vals, y_vals, title, fname, fmt, plot_mask=None,
         norm = colors.Normalize(vmin=vmin, vmax=vmax)
         cmap = 'Reds'
     elif fmt == 'mats':
-        with open('com_1', 'r') as reader: lines = reader.readlines()
+        with open('com_z', 'r') as reader: lines = reader.readlines()
         unique_vals = np.unique(plot_data_use)
         for i, unique_val in enumerate(unique_vals):
             plot_data_use[np.where(plot_data_use == unique_val)] = i
