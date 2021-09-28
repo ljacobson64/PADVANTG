@@ -2,6 +2,7 @@
 
 import os
 import copy
+from collections import OrderedDict
 import numpy as np
 import h5py
 import matplotlib
@@ -50,52 +51,25 @@ def main():
     plot_all(data)
 
 def read_hdf5():
-    key_dict = {
-        'fwd_solution/denovo-forward.inp.h5':
-            {'group_bounds_n'    : 'group_bounds_n'           ,
-             'group_bounds_p'    : 'group_bounds_p'           ,
-             'mixtable'          : 'mixtable'                 ,
-             'matids'            : 'matids'                   ,
-             'source_spectra'    : 'volsrc/spectra'           ,
-             'source_strength'   : 'volsrc/strength'          ,
-             'source_ids'        : 'volsrc/ids'               },
-        'adj_solution/denovo-adjoint.inp.h5':
-            {'response_spectra'  : 'volsrc/spectra'           ,
-             'response_strength' : 'volsrc/strength'          ,
-             'response_ids'      : 'volsrc/ids'               },
-        'fwd_solution/denovo-forward.out.h5':
-            {'mesh_x'            : 'denovo/mesh_x'            ,
-             'mesh_y'            : 'denovo/mesh_y'            ,
-             'mesh_z'            : 'denovo/mesh_z'            ,
-             'mesh_g'            : 'denovo/mesh_g'            ,
-             'quadrature_angles' : 'denovo/quadrature_angles' ,
-             'quadrature_weights': 'denovo/quadrature_weights'},
-        'adj_solution/denovo-adjoint.out.h5': {},
-        'custom_output/xs.h5'               :
-            {'mat_names'         : 'mat_names'                ,
-             'sigma_t'           : 'sigma_t'                  ,
-             'sigma_s'           : 'sigma_s'                  },
-        'custom_output/data.h5'             :
-            {'reverse_angle_map' : 'reverse_angle_map'        ,
-             'source'            : 'source'                   ,
-             'response'          : 'response'                 ,
-             'sigma_t_mixed'     : 'sigma_t_mixed'            ,
-             'sigma_s_mixed'     : 'sigma_s_mixed'            ,
-             'sigma_t_pert'      : 'sigma_t_pert'             ,
-             'sigma_s_pert'      : 'sigma_s_pert'             ,
-             'scalar_flux_fwd'   : 'scalar_flux_fwd'          ,
-             'scalar_flux_adj'   : 'scalar_flux_adj'          ,
-             'scalar_flux_con'   : 'scalar_flux_con'          ,
-             'current_fwd'       : 'current_fwd'              ,
-             'current_adj'       : 'current_adj'              ,
-             'current_con'       : 'current_con'              ,
-             'dR'                : 'dR'                       }
-    }
+    key_dict = OrderedDict()
+    with open('datasets.txt', 'r') as r: lines = r.readlines()
+    for line in lines:
+        if line.startswith('+'): continue
+        tokens = [x.strip() for x in line.split('|')[1:-1]]
+        if not tokens[0].endswith('h5'): continue
+        fname       = tokens[0]
+        key_hdf5    = tokens[1]
+        key_import  = tokens[2]
+        if fname in key_dict.keys(): pass
+        else: key_dict[fname] = []
+        key_dict[fname].append((key_hdf5, key_import))
 
     data = {}
     for fname in key_dict.keys():
         hf = h5py.File(fname, 'r')
-        for key, key_h5 in key_dict[fname].items(): data[key] = hf[key_h5][()]
+        for key_hdf5, key_import in key_dict[fname]:
+            if key_import.startswith('angular'): continue
+            data[key_import] = hf[key_hdf5][()]
     return data
 
 def plot_all(data):
