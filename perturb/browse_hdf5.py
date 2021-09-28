@@ -17,13 +17,17 @@ def main():
     fnames = ['fwd_solution/denovo-forward.inp.h5',
               'adj_solution/denovo-adjoint.inp.h5',
               'fwd_solution/denovo-forward.out.h5',
-              'adj_solution/denovo-adjoint.out.h5']
+              'adj_solution/denovo-adjoint.out.h5',
+              'custom_output/xs.h5'               ,
+              'custom_output/data.h5'             ]
 
-    hriz_line = ('+%s+%s+%s+%s+%s+%s+' %
-                 ('-' * 23, '-' * 27, '-' * 23, '-' * 9, '-' * 13, '-' * 27))
+    hriz_line = ('+%s+%s+%s+%s+%s+%s+%s+' %
+                 ('-' * 23, '-' * 27, '-' * 23, '-' * 9, '-' * 13, '-' * 13,
+                  '-' * 40))
     print(hriz_line)
-    print('| %-21s | %-25s | %-21s | %-7s | %11s | %-25s |' %
-          ('Filename', 'Key', 'Shape', 'Type', 'Num_Nonzero', 'Label'))
+    print('| %-21s | %-25s | %-21s | %-7s | %11s | %11s | %-38s |' %
+          ('Filename', 'Key', 'Shape', 'Type', 'Num_Nonzero', 'Num_Zero',
+           'Description'))
     print(hriz_line)
 
     for fname in fnames:
@@ -57,15 +61,36 @@ def main():
             labels['denovo/angular_flux'      ] = 'Angular flux (forward)'
         elif fname == 'adj_solution/denovo-adjoint.out.h5':
             labels['denovo/angular_flux'      ] = 'Angular flux (adjoint)'
+        elif fname == 'custom_output/xs.h5':
+            labels['mat_names'                ] = 'Material names'
+            labels['sigma_t'                  ] = 'Cross sections (total)'
+            labels['sigma_s'                  ] = 'Cross sections (scattering)'
+        elif fname == 'custom_output/data.h5':
+            labels['reverse_angle_map'] = 'Reverse angle map'
+            labels['source'           ] = 'Source (4D)'
+            labels['response'         ] = 'Response (4D)'
+            labels['sigma_t_mixed'    ] = 'Cross sections (total, mixed)'
+            labels['sigma_s_mixed'    ] = 'Cross sections (total, scattering)'
+            labels['sigma_t_pert'     ] = 'Cross sections (perturbed, mixed)'
+            labels['sigma_s_pert'     ] = 'Cross sections (perturbed, scattering)'
+            labels['scalar_flux_fwd'  ] = 'Scalar flux (forward)'
+            labels['scalar_flux_adj'  ] = 'Scalar flux (adjoint)'
+            labels['scalar_flux_con'  ] = 'Scalar flux (contributon)'
+            labels['current_fwd'      ] = 'Current (forward)'
+            labels['current_adj'      ] = 'Current (adjoint)'
+            labels['current_con'      ] = 'Current (contributon)'
+            labels['dR'               ] = 'dR'
 
         for key, label in labels.items():
             key_list = key.split('/')
             val = data[key_list[0]]
             for key2 in key_list[1:]: val = val[key2]
             num_nonzero = np.count_nonzero(val)
-            print('| %-21s | %-25s | %-21s | %-7s | %11s | %-25s |' %
+            if key == 'mat_names': num_zero = 0
+            else: num_zero = np.count_nonzero(val == 0)
+            print('| %-21s | %-25s | %-21s | %-7s | %11s | %11s | %-38s |' %
                   (fname.split('/')[-1], key, val.shape, val.dtype,
-                   num_nonzero, label))
+                   num_nonzero, num_zero, label))
         print(hriz_line)
 
 if __name__ == '__main__': main()
