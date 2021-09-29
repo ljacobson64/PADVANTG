@@ -5,8 +5,6 @@ dx_adjoint                  true
 anisn_library               27n19g
 anisn_upscatter             False
 
-denovo_first_group          1
-denovo_last_group           26
 denovo_verbose              true
 denovo_write_angular_flux   true
 

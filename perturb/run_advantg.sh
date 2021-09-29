@@ -9,4 +9,4 @@ source ${HOME}/PADVANTG/install/3.2.0-perturb/advantg.rc
 
 rm -rf model output fwd_solution adj_solution custom_output
 
-advantg advantg.inp
+advantg -v advantg.inp

@@ -75,7 +75,6 @@ def read_hdf5():
 def plot_all(data):
     nm     = data['dR'].shape[0]  # Number of pure materials
     nz     = data['dR'].shape[1]  # Number of Z intervals
-    g0     = data['mesh_g'][0]    # First energy group
     x_vals = data['mesh_x']       # Horizontal direction
     y_vals = data['mesh_y']       # Vertical direction
     hz     = nz // 2              # Use the middle Z slice
@@ -151,43 +150,41 @@ def plot_all(data):
 
     # Plots for the fast group (2) and thermal group (25)
     for igx in [2, 25]:
-        igf = igx - g0
-
         # Forward flux
-        plot_map(data['scalar_flux_fwd'][igf, hz, :, :],
+        plot_map(data['scalar_flux_fwd'][igx, hz, :, :],
                  x_vals, y_vals,
                  'Forward Flux (Group %u)'   % (igx),
                  'scalar_flux_fwd_g%02u.png' % (igx),
                  'log')
 
         # Adjoint flux
-        plot_map(data['scalar_flux_adj'][igf, hz, :, :],
+        plot_map(data['scalar_flux_adj'][igx, hz, :, :],
                  x_vals, y_vals,
                  'Adjoint Flux (Group %u)'   % (igx),
                  'scalar_flux_adj_g%02u.png' % (igx),
                  'log')
 
         # Contributon flux
-        plot_map(data['scalar_flux_con'][igf, hz, :, :],
+        plot_map(data['scalar_flux_con'][igx, hz, :, :],
                  x_vals, y_vals,
                  'Contributon Flux (Group %u)' % (igx),
                  'scalar_flux_con_g%02u.png'   % (igx),
                  'log')
 
         # Forward current
-        plot_quiver(data['current_fwd'][igf, hz, :, :, :2],
+        plot_quiver(data['current_fwd'][igx, hz, :, :, :2],
                     x_vals, y_vals,
                     'Forward Current (Group %u)' % (igx),
                     'current_fwd_g%02u.png'      % (igx))
 
         # Adjoint current
-        plot_quiver(data['current_adj'][igf, hz, :, :, :2],
+        plot_quiver(data['current_adj'][igx, hz, :, :, :2],
                     x_vals, y_vals,
                     'Adjoint Current (Group %u)' % (igx),
                     'current_adj_g%02u.png'      % (igx))
 
         # Contributon current
-        plot_quiver(data['current_con'][igf, hz, :, :, :2],
+        plot_quiver(data['current_con'][igx, hz, :, :, :2],
                     x_vals, y_vals,
                     'Contributon Current (Group %u)' % (igx),
                     'current_con_g%02u.png'          % (igx))

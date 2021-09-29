@@ -13,14 +13,15 @@
 | adj_solution/denovo-adjoint.inp.h5 | volsrc/strength           | response_strength  | Response strength                      |
 | adj_solution/denovo-adjoint.inp.h5 | volsrc/ids                | response_ids       | Response IDs                           |
 +------------------------------------+---------------------------+--------------------+----------------------------------------+
+| fwd_solution/denovo-forward.out.h5 | denovo/quadrature_angles  | quadrature_angles  | Quadrature angles                      |
+| fwd_solution/denovo-forward.out.h5 | denovo/quadrature_weights | quadrature_weights | Quadrature weights                     |
 | fwd_solution/denovo-forward.out.h5 | denovo/mesh_x             | mesh_x             | Mesh points (x)                        |
 | fwd_solution/denovo-forward.out.h5 | denovo/mesh_y             | mesh_y             | Mesh points (y)                        |
 | fwd_solution/denovo-forward.out.h5 | denovo/mesh_z             | mesh_z             | Mesh points (z)                        |
-| fwd_solution/denovo-forward.out.h5 | denovo/mesh_g             | mesh_g             | Mesh points (energy)                   |
-| fwd_solution/denovo-forward.out.h5 | denovo/quadrature_angles  | quadrature_angles  | Quadrature angles                      |
-| fwd_solution/denovo-forward.out.h5 | denovo/quadrature_weights | quadrature_weights | Quadrature weights                     |
+| fwd_solution/denovo-forward.out.h5 | denovo/mesh_g             | mesh_g_fwd         | Energy bin indices (forward)           |
 | fwd_solution/denovo-forward.out.h5 | denovo/angular_flux       | angular_flux_fwd   | Angular flux (forward)                 |
 +------------------------------------+---------------------------+--------------------+----------------------------------------+
+| adj_solution/denovo-adjoint.out.h5 | denovo/mesh_g             | mesh_g_adj         | Energy bin indices (adjoint)           |
 | adj_solution/denovo-adjoint.out.h5 | denovo/angular_flux       | angular_flux_adj   | Angular flux (adjoint)                 |
 +------------------------------------+---------------------------+--------------------+----------------------------------------+
 | custom_output/xs.h5                | mat_names                 | mat_names          | Material names                         |
