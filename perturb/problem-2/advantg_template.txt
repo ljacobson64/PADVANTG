@@ -1,0 +1,64 @@
+method                      dx
+dx_forward                  {}
+dx_adjoint                  {}
+
+anisn_library               27n19g
+anisn_upscatter             False
+
+denovo_verbose              true
+denovo_write_angular_flux   true
+
+mcnp_input                  mcnp.i
+{}
+
+denovo_x_blocks             3
+denovo_y_blocks             4
+denovo_z_blocks             3
+
+mcnp_material_names           4 "Air (dry, near sea level)"
+                              6 "Aluminum (Al)"
+                              7 "Aluminum Oxide (Al2O3)"
+                             13 "Aluminum, alloy 6061-O"
+                             25 "Beryllium (Be)"
+                             27 "Beryllium Oxide (BeO)"
+                             28 "Bismuth (Bi)"
+                             55 "Cadmium (Cd)"
+                             61 "Calcium Fluoride (CaF2)"
+                             62 "Calcium Oxide (CaO)"
+                             69 "Carbon, Graphite (reactor grade)"
+                             99 "Concrete, M-1"
+                            109 "Concrete, Regulatory Concrete (developed for U.S. NRC)"
+                            116 "Earth, U.S. Average"
+                            189 "Lead (Pb)"
+                            192 "Lithium (Li)"
+                            194 "Lithium Fluoride (LiF)"
+                            199 "Lithium Oxide (Li2O)"
+                            207 "Magnesium (Mg)"
+                            208 "Magnesium Oxide (MgO)"
+                            227 "Nickel (Ni)"
+                            275 "Polyethylene, Non-borated (C2H4)"
+                            362 "Titanium (Ti)"
+                            363 "Titanium Dioxide (TiO2)"
+                            391 "Water, Heavy (D2O)"
+                            392 "Water, Liquid (H2O)"
+                            417 "Calcium (Ca)"
+                            419 "Vanadium (V)"
+                            505 "Nickel-60"
+                            511 "Magnesium Fluoride (MgF2)"
+                            512 "Aluminum Fluoride (AlF3)"
+                            513 "Titanium(III) Fluoride (TiF3)"
+                            521 "Fluental"
+                            601 "5% Borated Polyethylene (SWX-201)"
+                            602 "30% Boron Polyethylene (SWX-210)"
+                            603 "7.5% Lithium Polyethylene (SWX-215)"
+                            604 "Poly-Biz Gamma Shield (SWX-217)"
+                            705 "70% AlF3, 30% Al"
+
+mesh_x                      -155.0 205.0
+mesh_x_ints                         45
+mesh_y                      -180.0 180.0
+mesh_y_ints                         45
+mesh_z                         0.0 240.0
+mesh_z_ints                         45
+
+# 45 * 45 * 45 = 91,125
