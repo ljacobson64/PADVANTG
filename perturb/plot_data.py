@@ -4,6 +4,8 @@ import os
 import sys
 import copy
 from collections import OrderedDict
+import argparse
+import multiprocessing as mp
 import numpy as np
 import h5py
 import matplotlib
@@ -12,6 +14,7 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 from matplotlib import colors
 from cycler import cycler
+
 
 from mcnp_colors import get_mcnp_color
 
@@ -32,7 +35,23 @@ plt.rcParams['mathtext.default'] = 'regular'
 
 def main():
     data = read_hdf5()
-    plot_all(data)
+    plot_args_list = get_all_plot_args(data)
+
+    jobs = get_args().jobs
+    if jobs > 1: pool = mp.Pool(processes=jobs)
+    for plot_args in plot_args_list:
+        if jobs > 1: pool.apply_async(make_plot, args=(plot_args,))
+        else: make_plot(plot_args)
+    if jobs > 1:
+        pool.close()
+        pool.join()
+
+def get_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-j', '--jobs', type=int, default=1,
+                        help='number of CPUs')
+    args = parser.parse_args()
+    return args
 
 def add_to_key_dict(key_dict, tokens):
     fname       = tokens[0]
@@ -76,7 +95,12 @@ def read_hdf5():
             else: data[key_import] = hf[key_hdf5][()]
     return data
 
-def plot_all(data):
+def make_plot(plot_args):
+    func = plot_args[0]
+    args = plot_args[1:]
+    func(*args)
+
+def get_all_plot_args(data):
     nm     = data['mat_names'].shape[0]   # Number of pure materials
     nz     = data['mesh_z'].shape[0] - 1  # Number of Z intervals
     ng     = data['sigma_t'].shape[1]     # Number of energy bins
@@ -87,136 +111,157 @@ def plot_all(data):
     # Tally IDs
     tally_list = data['source_spectra_adj'].keys()
 
-    # Plot spectra
-    plot_spectra(data['source_spectra_fwd'], data['source_spectra_adj'])
+    # List of all plot arguments
+    plots = []
 
-    # All future drawn lines should be black
-    plt.rcParams['axes.prop_cycle'] = cycler(color=['k'])
+    # Plot spectra
+    plots.append((plot_spectra,
+                  data['source_spectra_fwd'],
+                  data['source_spectra_adj']))
 
     # Plot material map
-    plot_map(data['matids'][hz, :, :],
-             x_vals, y_vals,
-             'Material Map',
-             'material_map.png',
-             'mats',
-             mat_names=data['mat_names'])
+    plots.append((plot_map,
+                  data['matids'][hz, :, :],
+                  x_vals, y_vals,
+                  'Material Map',
+                  'material_map.png',
+                  'mats',
+                  None, None,
+                  data['mat_names']))
 
     # Plot total forward source
-    plot_map(np.sum(data['source_fwd'][:, hz, :, :], 0),
-             x_vals, y_vals,
-             'Forward Source (Total)',
-             'source_fwd/total.png',
-             'lin')
+    plots.append((plot_map,
+                  np.sum(data['source_fwd'][:, hz, :, :], 0),
+                  x_vals, y_vals,
+                  'Forward Source (Total)',
+                  'source_fwd/total.png',
+                  'lin'))
 
     # Plot total adjoint response
     for ias, tally in enumerate(tally_list):
-        plot_map(np.sum(data['source_adj'][ias, :, hz, :, :], 0),
-                 x_vals, y_vals,
-                 'Adjoint Source (Tally %u, Total)' % (tally),
-                 'source_adj/t%03u_total.png'       % (tally),
-                 'lin')
+        plots.append((plot_map,
+                      np.sum(data['source_adj'][ias, :, hz, :, :], 0),
+                      x_vals, y_vals,
+                      'Adjoint Source (Tally %u, Total)' % (tally),
+                      'source_adj/t%03u_total.png'       % (tally),
+                      'lin'))
 
     # Plot total forward flux
-    plot_map(np.sum(data['scalar_flux_fwd'][:, hz, :, :], 0),
-             x_vals, y_vals,
-             'Forward Flux (Total)',
-             'scalar_flux_fwd/total.png',
-             'log')
+        plots.append((plot_map,
+                      np.sum(data['scalar_flux_fwd'][:, hz, :, :], 0),
+                      x_vals, y_vals,
+                      'Forward Flux (Total)',
+                      'scalar_flux_fwd/total.png',
+                      'log'))
 
     # Plot total adjoint flux
     for ias, tally in enumerate(tally_list):
-        plot_map(np.sum(data['scalar_flux_adj'][ias, :, hz, :, :], 0),
-                 x_vals, y_vals,
-                 'Adjoint Flux (Tally %u, Total)'  % (tally),
-                 'scalar_flux_adj/t%03u/total.png' % (tally),
-                 'log')
+        plots.append((plot_map,
+                      np.sum(data['scalar_flux_adj'][ias, :, hz, :, :], 0),
+                      x_vals, y_vals,
+                      'Adjoint Flux (Tally %u, Total)'  % (tally),
+                      'scalar_flux_adj/t%03u/total.png' % (tally),
+                      'log'))
 
     # Plot total contributon flux
     for ias, tally in enumerate(tally_list):
-        plot_map(np.sum(data['scalar_flux_con'][ias, :, hz, :, :], 0),
-                 x_vals, y_vals,
-                 'Contributon Flux (Tally %u, Total)' % (tally),
-                 'scalar_flux_con/t%03u/total.png'    % (tally),
-                 'log')
+        plots.append((plot_map,
+                      np.sum(data['scalar_flux_con'][ias, :, hz, :, :], 0),
+                      x_vals, y_vals,
+                      'Contributon Flux (Tally %u, Total)' % (tally),
+                      'scalar_flux_con/t%03u/total.png'    % (tally),
+                      'log'))
 
     # Plot total forward current
-    plot_quiver(np.sum(data['current_fwd'][:, hz, :, :, :2], 0),
-                x_vals, y_vals,
-                'Forward Current (Total)',
-                'current_fwd/total.png')
+    plots.append((plot_quiver,
+                  np.sum(data['current_fwd'][:, hz, :, :, :2], 0),
+                  x_vals, y_vals,
+                  'Forward Current (Total)',
+                  'current_fwd/total.png'))
 
     # Plot total adjoint current
     for ias, tally in enumerate(tally_list):
-        plot_quiver(np.sum(data['current_adj'][ias, :, hz, :, :, :2], 0),
-                    x_vals, y_vals,
-                    'Adjoint Current (Tally %u, Total)' % (tally),
-                    'current_adj/t%03u/total.png'       % (tally))
+        plots.append((plot_quiver,
+                      np.sum(data['current_adj'][ias, :, hz, :, :, :2], 0),
+                      x_vals, y_vals,
+                      'Adjoint Current (Tally %u, Total)' % (tally),
+                      'current_adj/t%03u/total.png'       % (tally)))
 
     # Plot total contributon current
     for ias, tally in enumerate(tally_list):
-        plot_quiver(np.sum(data['current_con'][ias, :, hz, :, :, :2], 0),
-                    x_vals, y_vals,
-                    'Contributon Current (Tally %u, Total)' % (tally),
-                    'current_con/t%03u/total.png'           % (tally))
+        plots.append((plot_quiver,
+                      np.sum(data['current_con'][ias, :, hz, :, :, :2], 0),
+                      x_vals, y_vals,
+                      'Contributon Current (Tally %u, Total)' % (tally),
+                      'current_con/t%03u/total.png'           % (tally)))
 
     # Plots for all energy groups
     for igx in range(ng):
         # Forward flux
-        plot_map(data['scalar_flux_fwd'][igx, hz, :, :],
-                 x_vals, y_vals,
-                 'Forward Flux (Group %u)'   % (igx),
-                 'scalar_flux_fwd/g%03u.png' % (igx),
-                 'log',
-                 vmax=np.max(data['scalar_flux_fwd'][:, hz, :, :]))
+        plots.append((plot_map,
+                      data['scalar_flux_fwd'][igx, hz, :, :],
+                      x_vals, y_vals,
+                      'Forward Flux (Group %u)'   % (igx),
+                      'scalar_flux_fwd/g%03u.png' % (igx),
+                      'log',
+                      np.max(data['scalar_flux_fwd'][:, hz, :, :])))
 
         # Adjoint flux
         for ias, tally in enumerate(tally_list):
-            plot_map(data['scalar_flux_adj'][ias, igx, hz, :, :],
-                     x_vals, y_vals,
-                     'Adjoint Flux (Tally %u, Group %u)' % (tally, igx),
-                     'scalar_flux_adj/t%03u/g%03u.png'  % (tally, igx),
-                     'log',
-                     vmax=np.max(data['scalar_flux_adj'][ias, :, hz, :, :]))
+            plots.append((plot_map,
+                          data['scalar_flux_adj'][ias, igx, hz, :, :],
+                          x_vals, y_vals,
+                          'Adjoint Flux (Tally %u, Group %u)' % (tally, igx),
+                          'scalar_flux_adj/t%03u/g%03u.png'  % (tally, igx),
+                          'log',
+                          np.max(data['scalar_flux_adj'][ias, :, hz, :, :])))
 
         # Contributon flux
         for ias, tally in enumerate(tally_list):
-            plot_map(data['scalar_flux_con'][ias, igx, hz, :, :],
-                     x_vals, y_vals,
-                     'Contributon Flux (Tally %u, Group %u)' % (tally, igx),
-                     'scalar_flux_con/t%03u/g%03u.png'       % (tally, igx),
-                     'log',
-                     vmax=np.max(data['scalar_flux_con'][ias, :, hz, :, :]))
+            plots.append((plot_map,
+                          data['scalar_flux_con'][ias, igx, hz, :, :],
+                          x_vals, y_vals,
+                          'Contributon Flux (Tally %u, Group %u)' % (tally, igx),
+                          'scalar_flux_con/t%03u/g%03u.png'       % (tally, igx),
+                          'log',
+                          np.max(data['scalar_flux_con'][ias, :, hz, :, :])))
 
         # Forward current
-        plot_quiver(data['current_fwd'][igx, hz, :, :, :2],
-                    x_vals, y_vals,
-                    'Forward Current (Group %u)' % (igx),
-                    'current_fwd/g%03u.png'      % (igx))
+        plots.append((plot_quiver,
+                      data['current_fwd'][igx, hz, :, :, :2],
+                      x_vals, y_vals,
+                      'Forward Current (Group %u)' % (igx),
+                      'current_fwd/g%03u.png'      % (igx)))
 
         # Adjoint current
         for ias, tally in enumerate(tally_list):
-            plot_quiver(data['current_adj'][ias, igx, hz, :, :, :2],
-                        x_vals, y_vals,
-                        'Adjoint Current (Tally %u, Group %u)' % (tally, igx),
-                        'current_adj/t%03u/g%03u.png'          % (tally, igx))
+            plots.append((plot_quiver,
+                          data['current_adj'][ias, igx, hz, :, :, :2],
+                          x_vals, y_vals,
+                          'Adjoint Current (Tally %u, Group %u)' % (tally, igx),
+                          'current_adj/t%03u/g%03u.png'          % (tally, igx)))
 
         # Contributon current
         for ias, tally in enumerate(tally_list):
-            plot_quiver(data['current_con'][ias, igx, hz, :, :, :2],
-                        x_vals, y_vals,
-                      'Contributon Current (Tally %u, Group %u)' % (tally, igx),
-                      'current_con/t%03u/g%03u.png'              % (tally, igx))
+            plots.append((plot_quiver,
+                          data['current_con'][ias, igx, hz, :, :, :2],
+                          x_vals, y_vals,
+                          'Contributon Current (Tally %u, Group %u)' % (tally, igx),
+                          'current_con/t%03u/g%03u.png'              % (tally, igx)))
 
     # Plot dR for all materials
     for ias, tally in enumerate(tally_list):
         for im in range(nm):
             mat_name = get_mat_name_short(data['mat_names'][im].decode())
-            plot_map(data['dR'][ias, im, hz, :, :],
-                     x_vals, y_vals,
-                     r'$\delta R$ (Tally %u, %s)' % (tally, mat_name),
-                     'dR/t%03u/m%03u.png'         % (tally, im      ),
-                     'logplusminus',
-                     vmax=np.max(np.abs(data['dR'][ias, :, hz, :, :])))
+            plots.append((plot_map,
+                          data['dR'][ias, im, hz, :, :],
+                          x_vals, y_vals,
+                          r'$\delta R$ (Tally %u, %s)' % (tally, mat_name),
+                          'dR/t%03u/m%03u.png'         % (tally, im      ),
+                          'logplusminus',
+                          np.max(np.abs(data['dR'][ias, :, hz, :, :]))))
+
+    return plots
 
 def plot_map(plot_data, x_vals, y_vals, title, fname, fmt,
              vmax=None, plot_mask=None, mat_names=None):
