@@ -108,8 +108,15 @@ def get_all_plot_args(data):
     y_vals = data['mesh_y']               # Vertical direction
     hz     = nz // 2                      # Use the middle Z slice
 
-    # Tally IDs
-    tally_list = data['source_spectra_adj'].keys()
+    # Get tally IDs
+    tally_list = sorted(data['source_spectra_adj'].keys())
+
+    # Get tally ratio IDs
+    if os.path.exists('tally_ratio_list.txt'):
+        with open('tally_ratio_list.txt', 'r') as r:
+            tallies_ratio_list = [[int(x) for x in x.split()]
+                                  for x in r.readlines()]
+    else: tallies_ratio_list = []
 
     # List of all plot arguments
     plots = []
@@ -260,6 +267,25 @@ def get_all_plot_args(data):
                           'dR/t%03u/m%03u.png'         % (tally, im      ),
                           'logplusminus',
                           np.max(np.abs(data['dR'][ias, :, hz, :, :]))))
+
+    # Plot dR ratios for all materials
+    for tally1, tally2 in tallies_ratio_list:
+        ias1 = tally_list.index(tally1)
+        ias2 = tally_list.index(tally2)
+        ratio_data = (data['dR'][ias1, :, hz, :, :] /
+                      data['dR'][ias2, :, hz, :, :])
+        ratio_data[np.isnan(ratio_data)] = 0.0
+        vmax = np.max(np.abs(ratio_data))
+        for im in range(nm):
+            mat_name = get_mat_name_short(data['mat_names'][im].decode())
+            plot_data = ratio_data[im, :, :]
+            plots.append((plot_map,
+                          plot_data,
+                          x_vals, y_vals,
+                          r'$\delta R$ (Tally Ratio %u/%u, %s)' % (tally1, tally2, mat_name),
+                          'dR_ratios/t%03u_t%03u/m%03u.png'     % (tally1, tally2, im      ),
+                          'logplusminus',
+                          vmax))
 
     return plots
 
