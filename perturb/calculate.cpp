@@ -389,6 +389,24 @@ int main() {
   }
   TIME_END();
 
+  // Calculate response
+  multi_array<double, 1> response{extents[nas]};
+  TIME_START("Calculating response...");
+  for (int igx = 0; igx < ngx; igx++) {   // Energy index
+    for (int iz = 0; iz < nz; iz++) {     // Z mesh index
+      for (int iy = 0; iy < ny; iy++) {   // Y mesh index
+        for (int ix = 0; ix < nx; ix++) { // X mesh index
+          double sff = scalar_flux_fwd[igx][iz][iy][ix];
+          for (int ias = 0; ias < nas; ias++) {
+            double sa = source_adj[ias][igx][iz][iy][ix];
+            response[ias] += sff * sa;
+          }
+        }
+      }
+    }
+  }
+  TIME_END();
+
   // Calculate dR using angular flux
   TIME_START("Calculating dR...");
   multi_array<double, 5> dR{extents[nas][nm][nz][ny][nx]};
@@ -444,6 +462,7 @@ int main() {
   write_hdf5_array(hf_o, "current_fwd", current_fwd);
   write_hdf5_array(hf_o, "current_adj", current_adj);
   write_hdf5_array(hf_o, "current_con", current_con);
+  write_hdf5_array(hf_o, "response", response);
   write_hdf5_array(hf_o, "dR", dR);
   TIME_END();
 

@@ -38,5 +38,6 @@
 | hdf5/data.h5                | current_fwd               | current_fwd              | Forward current                        |
 | hdf5/data.h5                | current_adj               | current_adj              | Adjoint current (all)                  |
 | hdf5/data.h5                | current_con               | current_con              | Contributon current (all)              |
+| hdf5/data.h5                | response                  | response                 | Response                               |
 | hdf5/data.h5                | dR                        | dR                       | Perturbation in response (all)         |
 +-----------------------------+---------------------------+--------------------------+----------------------------------------+
