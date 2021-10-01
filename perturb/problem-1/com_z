@@ -1,0 +1,24 @@
+origin 10000 10000 10000
+label 0 0
+color 5000
+
+shade   4 LightBlue       $ Air (dry, near sea level)
+shade  13 CadetBlue       $ Aluminum, alloy 6061-O
+shade  25 yellow          $ Beryllium (Be)
+shade  27 yellow          $ Beryllium Oxide (BeO)
+shade  41 green           $ Boron (B)
+shade  69 salmon          $ Carbon, Graphite (reactor grade)
+shade 109 SlateGray       $ Concrete, Regulatory Concrete (developed for U.S. NRC)
+shade 112 DarkOrchid      $ Copper (Cu)
+shade 144 red             $ Gadolinium (Gd)
+shade 172 MediumPurple    $ Iron (Fe)
+shade 274 DarkSeaGreen    $ Polyethylene, Borated
+shade 275 burlywood       $ Polyethylene, Non-borated (C2H4)
+shade 391 RoyalBlue       $ Water, Heavy (D2O)
+shade 392 DodgerBlue      $ Water, Liquid (H2O)
+shade 406 PaleVioletRed   $ Zircaloy-4
+shade 501 DarkOliveGreen  $ Uranium-235
+
+basis 1 0 0 0 1 0
+extent 25.0
+origin 0.0 0.0 0.0

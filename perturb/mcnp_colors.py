@@ -1,5 +1,5 @@
 # Internal MCNP color definitions
-mcnp_colors = {
+_mcnp_colors = {
     'VioletRed':      (0.816, 0.125, 0.565),
     'blue':           (0.000, 0.000, 1.000),
     'yellow':         (1.000, 1.000, 0.000),
@@ -72,3 +72,7 @@ mcnp_colors = {
     'yellow':         (1.000, 1.000, 0.000),
     'white':          (1.000, 1.000, 1.000)
 }
+def get_mcnp_color(color):
+    if color in _mcnp_colors.keys(): return _mcnp_colors[color]
+    print('Warning: %s not in _mcnp_colors' % (color))
+    return _mcnp_colors['white']

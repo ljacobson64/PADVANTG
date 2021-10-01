@@ -1,45 +1,42 @@
-+------------------------------------+---------------------------+--------------------+----------------------------------------+
-| Filename                           | HDF5 key                  | Imported key       | Description                            |
-+------------------------------------+---------------------------+--------------------+----------------------------------------+
-| fwd_solution/denovo-forward.inp.h5 | group_bounds_n            | group_bounds_n     | Energy groups (neutron)                |
-| fwd_solution/denovo-forward.inp.h5 | group_bounds_p            | group_bounds_p     | Energy groups (photon)                 |
-| fwd_solution/denovo-forward.inp.h5 | mixtable                  | mixtable           | Mix table                              |
-| fwd_solution/denovo-forward.inp.h5 | matids                    | matids             | Material map                           |
-| fwd_solution/denovo-forward.inp.h5 | volsrc/spectra            | source_spectra     | Source spectra                         |
-| fwd_solution/denovo-forward.inp.h5 | volsrc/strength           | source_strength    | Source strength                        |
-| fwd_solution/denovo-forward.inp.h5 | volsrc/ids                | source_ids         | Source IDs                             |
-+------------------------------------+---------------------------+--------------------+----------------------------------------+
-| adj_solution/denovo-adjoint.inp.h5 | volsrc/spectra            | response_spectra   | Response spectra                       |
-| adj_solution/denovo-adjoint.inp.h5 | volsrc/strength           | response_strength  | Response strength                      |
-| adj_solution/denovo-adjoint.inp.h5 | volsrc/ids                | response_ids       | Response IDs                           |
-+------------------------------------+---------------------------+--------------------+----------------------------------------+
-| fwd_solution/denovo-forward.out.h5 | denovo/quadrature_angles  | quadrature_angles  | Quadrature angles                      |
-| fwd_solution/denovo-forward.out.h5 | denovo/quadrature_weights | quadrature_weights | Quadrature weights                     |
-| fwd_solution/denovo-forward.out.h5 | denovo/mesh_x             | mesh_x             | Mesh points (x)                        |
-| fwd_solution/denovo-forward.out.h5 | denovo/mesh_y             | mesh_y             | Mesh points (y)                        |
-| fwd_solution/denovo-forward.out.h5 | denovo/mesh_z             | mesh_z             | Mesh points (z)                        |
-| fwd_solution/denovo-forward.out.h5 | denovo/mesh_g             | mesh_g_fwd         | Energy bin indices (forward)           |
-| fwd_solution/denovo-forward.out.h5 | denovo/angular_flux       | angular_flux_fwd   | Angular flux (forward)                 |
-+------------------------------------+---------------------------+--------------------+----------------------------------------+
-| adj_solution/denovo-adjoint.out.h5 | denovo/mesh_g             | mesh_g_adj         | Energy bin indices (adjoint)           |
-| adj_solution/denovo-adjoint.out.h5 | denovo/angular_flux       | angular_flux_adj   | Angular flux (adjoint)                 |
-+------------------------------------+---------------------------+--------------------+----------------------------------------+
-| custom_output/xs.h5                | mat_names                 | mat_names          | Material names                         |
-| custom_output/xs.h5                | sigma_t                   | sigma_t            | Cross sections (total)                 |
-| custom_output/xs.h5                | sigma_s                   | sigma_s            | Cross sections (scattering)            |
-+------------------------------------+---------------------------+--------------------+----------------------------------------+
-| custom_output/data.h5              | reverse_angle_map         | reverse_angle_map  | Reverse angle map                      |
-| custom_output/data.h5              | source                    | source             | Source (4D)                            |
-| custom_output/data.h5              | response                  | response           | Response (4D)                          |
-| custom_output/data.h5              | sigma_t_mixed             | sigma_t_mixed      | Cross sections (total, mixed)          |
-| custom_output/data.h5              | sigma_s_mixed             | sigma_s_mixed      | Cross sections (total, scattering)     |
-| custom_output/data.h5              | sigma_t_pert              | sigma_t_pert       | Cross sections (perturbed, mixed)      |
-| custom_output/data.h5              | sigma_s_pert              | sigma_s_pert       | Cross sections (perturbed, scattering) |
-| custom_output/data.h5              | scalar_flux_fwd           | scalar_flux_fwd    | Scalar flux (forward)                  |
-| custom_output/data.h5              | scalar_flux_adj           | scalar_flux_adj    | Scalar flux (adjoint)                  |
-| custom_output/data.h5              | scalar_flux_con           | scalar_flux_con    | Scalar flux (contributon)              |
-| custom_output/data.h5              | current_fwd               | current_fwd        | Current (forward)                      |
-| custom_output/data.h5              | current_adj               | current_adj        | Current (adjoint)                      |
-| custom_output/data.h5              | current_con               | current_con        | Current (contributon)                  |
-| custom_output/data.h5              | dR                        | dR                 | Perturbation in response               |
-+------------------------------------+---------------------------+--------------------+----------------------------------------+
++-----------------------------+---------------------------+--------------------------+----------------------------------------+
+| Filename                    | HDF5 key                  | Imported key             | Description                            |
++-----------------------------+---------------------------+--------------------------+----------------------------------------+
+| hdf5/advantg_xs.h5          | mat_names                 | mat_names                | Material names                         |
+| hdf5/advantg_xs.h5          | sigma_t                   | sigma_t                  | Total cross sections                   |
+| hdf5/advantg_xs.h5          | sigma_s                   | sigma_s                  | Scattering cross sections              |
++-----------------------------+---------------------------+--------------------------+----------------------------------------+
+| hdf5/advantg_fwd_inp.h5     | group_bounds_n            | group_bounds_n           | Neutron energy groups                  |
+| hdf5/advantg_fwd_inp.h5     | group_bounds_p            | group_bounds_p           | Photon energy groups                   |
+| hdf5/advantg_fwd_inp.h5     | mixtable                  | mixtable                 | Mix table                              |
+| hdf5/advantg_fwd_inp.h5     | matids                    | matids                   | Material map                           |
+| hdf5/advantg_fwd_inp.h5     | volsrc/spectra            | source_spectra_fwd       | Forward source spectra                 |
+| hdf5/advantg_fwd_inp.h5     | volsrc/strength           | source_strength_fwd      | Forward source strength                |
++-----------------------------+---------------------------+--------------------------+----------------------------------------+
+| hdf5/advantg_fwd_out.h5     | denovo/quadrature_angles  | quadrature_angles        | Quadrature angles                      |
+| hdf5/advantg_fwd_out.h5     | denovo/quadrature_weights | quadrature_weights       | Quadrature weights                     |
+| hdf5/advantg_fwd_out.h5     | denovo/mesh_x             | mesh_x                   | Mesh points (x)                        |
+| hdf5/advantg_fwd_out.h5     | denovo/mesh_y             | mesh_y                   | Mesh points (y)                        |
+| hdf5/advantg_fwd_out.h5     | denovo/mesh_z             | mesh_z                   | Mesh points (z)                        |
+| hdf5/advantg_fwd_out.h5     | denovo/mesh_g             | mesh_g_fwd               | Forward energy bin indices             |
+| hdf5/advantg_fwd_out.h5     | denovo/angular_flux       | angular_flux_fwd         | Forward angular flux                   |
++-----------------------------+---------------------------+--------------------------+----------------------------------------+
+| hdf5/advantg_adj_{T}_inp.h5 | volsrc/spectra            | source_spectra_adj[{T}]  | Adjoint source spectra ({T})           |
+| hdf5/advantg_adj_{T}_inp.h5 | volsrc/strength           | source_strength_adj[{T}] | Adjoint source strength ({T})          |
++-----------------------------+---------------------------+--------------------------+----------------------------------------+
+| hdf5/advantg_adj_{T}_out.h5 | denovo/mesh_g             | mesh_g_adj[{T}]          | Adjoint energy bin indices ({T})       |
+| hdf5/advantg_adj_{T}_out.h5 | denovo/angular_flux       | angular_flux_adj[{T}]    | Adjoint angular flux ({T})             |
++-----------------------------+---------------------------+--------------------------+----------------------------------------+
+| hdf5/data.h5                | sigma_t_mixed             | sigma_t_mixed            | Total cross sections (mixed)           |
+| hdf5/data.h5                | sigma_s_mixed             | sigma_s_mixed            | Scattering cross sections (mixed)      |
+| hdf5/data.h5                | sigma_t_pert              | sigma_t_pert             | Total cross sections (perturbed)       |
+| hdf5/data.h5                | sigma_s_pert              | sigma_s_pert             | Scattering cross sections (perturbed)  |
+| hdf5/data.h5                | source_fwd                | source_fwd               | 4D forward source                      |
+| hdf5/data.h5                | source_adj                | source_adj               | 4D adjoint sources (all)               |
+| hdf5/data.h5                | scalar_flux_fwd           | scalar_flux_fwd          | Forward scalar flux                    |
+| hdf5/data.h5                | scalar_flux_adj           | scalar_flux_adj          | Adjoint scalar flux (all)              |
+| hdf5/data.h5                | scalar_flux_con           | scalar_flux_con          | Contributon scalar flux (all)          |
+| hdf5/data.h5                | current_fwd               | current_fwd              | Forward current                        |
+| hdf5/data.h5                | current_adj               | current_adj              | Adjoint current (all)                  |
+| hdf5/data.h5                | current_con               | current_con              | Contributon current (all)              |
+| hdf5/data.h5                | dR                        | dR                       | Perturbation in response (all)         |
++-----------------------------+---------------------------+--------------------------+----------------------------------------+

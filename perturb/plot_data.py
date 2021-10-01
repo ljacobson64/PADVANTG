@@ -1,21 +1,24 @@
 #!/usr/bin/python3
 
 import os
+import sys
 import copy
 from collections import OrderedDict
 import numpy as np
 import h5py
 import matplotlib
 matplotlib.use('Agg')
-import matplotlib.cm as cm
-import matplotlib.colors as colors
 import matplotlib.pyplot as plt
+from matplotlib import cm
+from matplotlib import colors
 from cycler import cycler
 
-from draw_geom import draw_geometry
-from mcnp_colors import mcnp_colors as MC
+from mcnp_colors import get_mcnp_color
 
-small_plots = True
+sys.path.insert(0, os.getcwd())
+from draw_geom import draw_geometry
+
+small_plots = False
 if small_plots:
     bbox_inches = 'tight'
     font_size = 16.0
@@ -27,180 +30,196 @@ plt.rcParams['font.size'       ] = font_size
 plt.rcParams['font.family'     ] = 'serif'
 plt.rcParams['mathtext.default'] = 'regular'
 
-mat_names_short = {
-    'void'                            : 'Void'        ,
-    'Air (Dry, Near Sea Level)'       : 'Air'         ,
-    'Aluminum, Alloy 6061-O'          : 'Aluminum'    ,
-    'Beryllium'                       : 'Beryllium'   ,
-    'Beryllium Oxide'                 : 'BeO'         ,
-    'Boron'                           : 'Boron'       ,
-    'Carbon, Graphite (Reactor Grade)': 'Graphite'    ,
-    'Concrete, Regular'               : 'Concrete'    ,
-    'Copper'                          : 'Copper'      ,
-    'Gadolinium'                      : 'Gadolinium'  ,
-    'Iron'                            : 'Iron'        ,
-    'Polyethylene, Borated'           : 'Borated HDPE',
-    'Polyethylene, Non-borated'       : 'HDPE'        ,
-    'Water, Heavy'                    : 'Heavy Water' ,
-    'Water, Liquid'                   : 'Water'       ,
-    'Zircaloy-4'                      : 'Zircaloy-4'  ,
-    'Uranium-235'                     : 'Uranium-235' }
-
 def main():
     data = read_hdf5()
     plot_all(data)
 
+def add_to_key_dict(key_dict, tokens):
+    fname       = tokens[0]
+    key_hdf5    = tokens[1]
+    key_import  = tokens[2]
+    if fname in key_dict.keys(): pass
+    else: key_dict[fname] = []
+    key_dict[fname].append((key_hdf5, key_import))
+
 def read_hdf5():
+    # Get list of tallies
+    with open('tally_list.txt', 'r') as r:
+        tally_list = [int(x) for x in r.read().split()]
+
+    # Get list of expected datasets
     key_dict = OrderedDict()
-    with open('datasets.txt', 'r') as r: lines = r.readlines()
+    with open('../datasets.txt', 'r') as r: lines = r.readlines()
     for line in lines:
         if line.startswith('+'): continue
         tokens = [x.strip() for x in line.split('|')[1:-1]]
         if not tokens[0].endswith('h5'): continue
-        fname       = tokens[0]
-        key_hdf5    = tokens[1]
-        key_import  = tokens[2]
-        if fname in key_dict.keys(): pass
-        else: key_dict[fname] = []
-        key_dict[fname].append((key_hdf5, key_import))
+        if '{T}' in line:
+            for tally in tally_list:
+                line_new = line.replace('{T}', str(tally))
+                tokens_new = [x.strip() for x in line_new.split('|')[1:-1]]
+                add_to_key_dict(key_dict, tokens_new)
+        else: add_to_key_dict(key_dict, tokens)
 
+    # Load datasets
     data = {}
     for fname in key_dict.keys():
+        print('Reading %s' % (fname))
         hf = h5py.File(fname, 'r')
         for key_hdf5, key_import in key_dict[fname]:
             if key_import.startswith('angular'): continue
-            data[key_import] = hf[key_hdf5][()]
+            if '[' in key_import and ']' in key_import:
+                ki1 =     key_import.split('[')[0].strip()
+                ki2 = int(key_import.split('[')[1].split(']')[0].strip())
+                if ki1 in data.keys(): data[ki1][ki2] = hf[key_hdf5][()]
+                else: data[ki1] = {ki2: hf[key_hdf5][()]}
+            else: data[key_import] = hf[key_hdf5][()]
     return data
 
 def plot_all(data):
-    nm     = data['dR'].shape[0]  # Number of pure materials
-    nz     = data['dR'].shape[1]  # Number of Z intervals
-    x_vals = data['mesh_x']       # Horizontal direction
-    y_vals = data['mesh_y']       # Vertical direction
-    hz     = nz // 2              # Use the middle Z slice
+    nm     = data['mat_names'].shape[0]   # Number of pure materials
+    nz     = data['mesh_z'].shape[0] - 1  # Number of Z intervals
+    ng     = data['sigma_t'].shape[1]     # Number of energy bins
+    x_vals = data['mesh_x']               # Horizontal direction
+    y_vals = data['mesh_y']               # Vertical direction
+    hz     = nz // 2                      # Use the middle Z slice
+
+    # Tally IDs
+    tally_list = data['source_spectra_adj'].keys()
 
     # Plot spectra
-    plot_spectra(data['source_spectra'], data['response_spectra'])
+    plot_spectra(data['source_spectra_fwd'], data['source_spectra_adj'])
 
     # All future drawn lines should be black
     plt.rcParams['axes.prop_cycle'] = cycler(color=['k'])
 
     # Plot material map
-    plot_data = data['matids'][hz, :, :]
-    plot_mask = np.where(plot_data != 14)
-    plot_map(plot_data,
+    plot_map(data['matids'][hz, :, :],
              x_vals, y_vals,
              'Material Map',
              'material_map.png',
              'mats',
              mat_names=data['mat_names'])
 
-    # Plot total source
-    plot_map(np.sum(data['source'][:, hz, :, :], 0),
+    # Plot total forward source
+    plot_map(np.sum(data['source_fwd'][:, hz, :, :], 0),
              x_vals, y_vals,
-             'Source (Total)',
-             'source_total.png',
+             'Forward Source (Total)',
+             'source_fwd/total.png',
              'lin')
 
-    # Plot total response
-    plot_map(np.sum(data['response'][:, hz, :, :], 0),
-             x_vals, y_vals,
-             'Response (Total)',
-             'response_total.png',
-             'lin')
+    # Plot total adjoint response
+    for ias, tally in enumerate(tally_list):
+        plot_map(np.sum(data['source_adj'][ias, :, hz, :, :], 0),
+                 x_vals, y_vals,
+                 'Adjoint Source (Tally %u, Total)' % (tally),
+                 'source_adj/t%03u_total.png'       % (tally),
+                 'lin')
 
     # Plot total forward flux
     plot_map(np.sum(data['scalar_flux_fwd'][:, hz, :, :], 0),
              x_vals, y_vals,
              'Forward Flux (Total)',
-             'scalar_flux_fwd_total.png',
+             'scalar_flux_fwd/total.png',
              'log')
 
     # Plot total adjoint flux
-    plot_map(np.sum(data['scalar_flux_adj'][:, hz, :, :], 0),
-             x_vals, y_vals,
-             'Adjoint Flux (Total)',
-             'scalar_flux_adj_total.png',
-             'log')
+    for ias, tally in enumerate(tally_list):
+        plot_map(np.sum(data['scalar_flux_adj'][ias, :, hz, :, :], 0),
+                 x_vals, y_vals,
+                 'Adjoint Flux (Tally %u, Total)'  % (tally),
+                 'scalar_flux_adj/t%03u/total.png' % (tally),
+                 'log')
 
     # Plot total contributon flux
-    plot_map(np.sum(data['scalar_flux_con'][:, hz, :, :], 0),
-             x_vals, y_vals,
-             'Contributon Flux (Total)',
-             'scalar_flux_con_total.png',
-             'log')
+    for ias, tally in enumerate(tally_list):
+        plot_map(np.sum(data['scalar_flux_con'][ias, :, hz, :, :], 0),
+                 x_vals, y_vals,
+                 'Contributon Flux (Tally %u, Total)' % (tally),
+                 'scalar_flux_con/t%03u/total.png'    % (tally),
+                 'log')
 
     # Plot total forward current
     plot_quiver(np.sum(data['current_fwd'][:, hz, :, :, :2], 0),
                 x_vals, y_vals,
                 'Forward Current (Total)',
-                'current_fwd_total.png')
+                'current_fwd/total.png')
 
     # Plot total adjoint current
-    plot_quiver(np.sum(data['current_adj'][:, hz, :, :, :2], 0),
-                x_vals, y_vals,
-                'Adjoint Current (Total)',
-                'current_adj_total.png')
+    for ias, tally in enumerate(tally_list):
+        plot_quiver(np.sum(data['current_adj'][ias, :, hz, :, :, :2], 0),
+                    x_vals, y_vals,
+                    'Adjoint Current (Tally %u, Total)' % (tally),
+                    'current_adj/t%03u/total.png'       % (tally))
 
     # Plot total contributon current
-    plot_quiver(np.sum(data['current_con'][:, hz, :, :, :2], 0),
-                x_vals, y_vals,
-                'Contributon Current (Total)',
-                'current_con_total.png')
+    for ias, tally in enumerate(tally_list):
+        plot_quiver(np.sum(data['current_con'][ias, :, hz, :, :, :2], 0),
+                    x_vals, y_vals,
+                    'Contributon Current (Tally %u, Total)' % (tally),
+                    'current_con/t%03u/total.png'           % (tally))
 
-    # Plots for the fast group (2) and thermal group (25)
-    for igx in [2, 25]:
+    # Plots for all energy groups
+    for igx in range(ng):
         # Forward flux
         plot_map(data['scalar_flux_fwd'][igx, hz, :, :],
                  x_vals, y_vals,
                  'Forward Flux (Group %u)'   % (igx),
-                 'scalar_flux_fwd_g%02u.png' % (igx),
-                 'log')
+                 'scalar_flux_fwd/g%03u.png' % (igx),
+                 'log',
+                 vmax=np.max(data['scalar_flux_fwd'][:, hz, :, :]))
 
         # Adjoint flux
-        plot_map(data['scalar_flux_adj'][igx, hz, :, :],
-                 x_vals, y_vals,
-                 'Adjoint Flux (Group %u)'   % (igx),
-                 'scalar_flux_adj_g%02u.png' % (igx),
-                 'log')
+        for ias, tally in enumerate(tally_list):
+            plot_map(data['scalar_flux_adj'][ias, igx, hz, :, :],
+                     x_vals, y_vals,
+                     'Adjoint Flux (Tally %u, Group %u)' % (tally, igx),
+                     'scalar_flux_adj/t%03u/g%03u.png'  % (tally, igx),
+                     'log',
+                     vmax=np.max(data['scalar_flux_adj'][ias, :, hz, :, :]))
 
         # Contributon flux
-        plot_map(data['scalar_flux_con'][igx, hz, :, :],
-                 x_vals, y_vals,
-                 'Contributon Flux (Group %u)' % (igx),
-                 'scalar_flux_con_g%02u.png'   % (igx),
-                 'log')
+        for ias, tally in enumerate(tally_list):
+            plot_map(data['scalar_flux_con'][ias, igx, hz, :, :],
+                     x_vals, y_vals,
+                     'Contributon Flux (Tally %u, Group %u)' % (tally, igx),
+                     'scalar_flux_con/t%03u/g%03u.png'       % (tally, igx),
+                     'log',
+                     vmax=np.max(data['scalar_flux_con'][ias, :, hz, :, :]))
 
         # Forward current
         plot_quiver(data['current_fwd'][igx, hz, :, :, :2],
                     x_vals, y_vals,
                     'Forward Current (Group %u)' % (igx),
-                    'current_fwd_g%02u.png'      % (igx))
+                    'current_fwd/g%03u.png'      % (igx))
 
         # Adjoint current
-        plot_quiver(data['current_adj'][igx, hz, :, :, :2],
-                    x_vals, y_vals,
-                    'Adjoint Current (Group %u)' % (igx),
-                    'current_adj_g%02u.png'      % (igx))
+        for ias, tally in enumerate(tally_list):
+            plot_quiver(data['current_adj'][ias, igx, hz, :, :, :2],
+                        x_vals, y_vals,
+                        'Adjoint Current (Tally %u, Group %u)' % (tally, igx),
+                        'current_adj/t%03u/g%03u.png'          % (tally, igx))
 
         # Contributon current
-        plot_quiver(data['current_con'][igx, hz, :, :, :2],
-                    x_vals, y_vals,
-                    'Contributon Current (Group %u)' % (igx),
-                    'current_con_g%02u.png'          % (igx))
+        for ias, tally in enumerate(tally_list):
+            plot_quiver(data['current_con'][ias, igx, hz, :, :, :2],
+                        x_vals, y_vals,
+                      'Contributon Current (Tally %u, Group %u)' % (tally, igx),
+                      'current_con/t%03u/g%03u.png'              % (tally, igx))
 
     # Plot dR for all materials
-    for im in range(nm):
-        mat_name_short = mat_names_short[data['mat_names'][im].decode()]
-        plot_map(data['dR'][im, hz, :, :],
-                 x_vals, y_vals,
-                 r'$\delta R$ for %s' % (mat_name_short),
-                 'dR_%02u.png' % (im),
-                 'logplusminus',
-                 plot_mask=plot_mask)
+    for ias, tally in enumerate(tally_list):
+        for im in range(nm):
+            mat_name = get_mat_name_short(data['mat_names'][im].decode())
+            plot_map(data['dR'][ias, im, hz, :, :],
+                     x_vals, y_vals,
+                     r'$\delta R$ (Tally %u, %s)' % (tally, mat_name),
+                     'dR/t%03u/m%03u.png'         % (tally, im      ),
+                     'logplusminus',
+                     vmax=np.max(np.abs(data['dR'][ias, :, hz, :, :])))
 
-def plot_map(plot_data, x_vals, y_vals, title, fname, fmt, plot_mask=None,
-             mat_names=None):
+def plot_map(plot_data, x_vals, y_vals, title, fname, fmt,
+             vmax=None, plot_mask=None, mat_names=None):
     # Make a copy of the plot data to avoid overwriting it
     plot_data_use = np.array(plot_data)
 
@@ -209,7 +228,8 @@ def plot_map(plot_data, x_vals, y_vals, title, fname, fmt, plot_mask=None,
 
     # Color scale
     if fmt == 'logplusminus':
-        logvmax = 8
+        if vmax is None: logvmax = 8
+        else:            logvmax = int(np.ceil(np.log10(vmax)))
         span = 8
         loglinthresh = logvmax - span
         vmax = 10**logvmax
@@ -231,10 +251,13 @@ def plot_map(plot_data, x_vals, y_vals, title, fname, fmt, plot_mask=None,
         #print('Min/max values: %9.2e, %9.2e' %
         #      (np.min(plot_data_use), np.max(plot_data_use)))
     elif fmt == 'log':
-        result_min_nonzero = np.min(plot_data_use[plot_data_use != 0])
-        result_max_nonzero = np.max(plot_data_use[plot_data_use != 0])
-        logvmax = np.ceil(np.log10(result_max_nonzero))
-        logvmin = max(np.floor(np.log10(result_min_nonzero)), logvmax - 10)
+        if vmax is None:
+            result_min_nonzero = np.min(plot_data_use[plot_data_use != 0])
+            result_max_nonzero = np.max(plot_data_use[plot_data_use != 0])
+            logvmax = np.ceil(np.log10(result_max_nonzero))
+        else:
+            logvmax = np.ceil(np.log10(vmax))
+        logvmin = logvmax - 10
         vmin = 10**logvmin
         vmax = 10**logvmax
         norm = colors.LogNorm(vmin=vmin, vmax=vmax)
@@ -245,7 +268,8 @@ def plot_map(plot_data, x_vals, y_vals, title, fname, fmt, plot_mask=None,
                        np.arange(logvmin, logvmax + 1, 1)]
     elif fmt == 'lin':
         vmin = 0.0
-        vmax = np.max(plot_data_use) * 1.1
+        if vmax is None: vmax = np.max(plot_data_use) * 1.1
+        else:            vmax = vmax * 1.1
         norm = colors.Normalize(vmin=vmin, vmax=vmax)
         cmap = 'Reds'
     elif fmt == 'mats':
@@ -256,14 +280,17 @@ def plot_map(plot_data, x_vals, y_vals, title, fname, fmt, plot_mask=None,
         color_strs = (['white'] +
                       [x.split()[2] for x in lines if x.startswith('shade')])
         color_strs = [x for i, x in enumerate(color_strs) if i in unique_vals]
-        CL = [MC[x] for x in color_strs]
+        tick_labels = [get_mat_name_short(x.decode()) for x in
+                       mat_names[unique_vals[:len(color_strs)]]]
+        if np.sum(plot_data_use > len(color_strs) - 1) > 0:
+            color_strs.append('white')
+            tick_labels.append('(Mix)')
+        CL = [get_mcnp_color(x) for x in color_strs]
         vmin = 0
         vmax = len(CL)
         norm = colors.Normalize(vmin=vmin, vmax=vmax)
         cmap = colors.ListedColormap(CL)
         ticks = np.linspace(0.5, vmax - 0.5, len(CL))
-        tick_labels = [mat_names_short[x.decode()]
-                       for x in mat_names[unique_vals]]
 
     fig, ax = plt.subplots(1, 1)
     if 'mats' in fmt:
@@ -301,8 +328,10 @@ def plot_map(plot_data, x_vals, y_vals, title, fname, fmt, plot_mask=None,
     draw_geometry()
 
     # Save figure
-    if not os.path.exists('images'): os.makedirs('images')
-    print('Writing images/%s to file' % (fname))
+    if not os.path.exists('images'): os.system('mkdir -p images')
+    if '/' in fname:
+        os.system('mkdir -p images/%s' % ('/'.join(fname.split('/')[:-1])))
+    print('Writing images/%s' % (fname))
     plt.savefig('images/%s' % (fname), bbox_inches=bbox_inches)
     plt.close()
 
@@ -330,33 +359,38 @@ def plot_quiver(plot_data, x_vals, y_vals, title, fname):
     draw_geometry()
 
     # Save figure
-    if not os.path.exists('images'): os.makedirs('images')
-    print('Writing images/%s to file' % (fname))
+    if not os.path.exists('images'): os.system('mkdir -p images')
+    if '/' in fname:
+        os.system('mkdir -p images/%s' % ('/'.join(fname.split('/')[:-1])))
+    print('Writing images/%s' % (fname))
     plt.savefig('images/%s' % (fname), bbox_inches=bbox_inches)
     plt.close()
 
-def plot_spectra(source, response):
+def plot_spectra(source_fwd, source_adj):
     fig, ax = plt.subplots(1, 1)
     fig.set_size_inches(8, 6)
 
     # Plot spectra
-    ng = source.shape[1]
-    ebins = range(ng)
-    plt.bar(ebins, source  [0, :], label='Source'  )
-    plt.bar(ebins, response[0, :], label='Response')
+    ng = source_fwd.shape[1]
+    ebins = np.array(range(ng))
+    xvals = np.insert(ebins, [0, len(ebins)], len(ebins))
+    yvals = np.insert(source_fwd[0, :], [0, len(ebins)], 0)
+    ax.step(xvals, yvals, where='post', label='Forward')
+    for tally in source_adj.keys():
+        yvals = np.insert(source_adj[tally][0, :], [0, len(ebins)], 0)
+        ax.step(xvals, yvals, where='post', label='Adjoint (%u)' % (tally))
 
     # Formatting
-    ax.set_xlim([-0.6, ng - 0.4])
     ax.set_xlabel('Energy group')
     ax.set_ylabel('Magnitude')
-    ax.set_title('Source and Response Energy Spectra')
+    ax.set_title('Forward and Adjoint Source Energy Spectra')
     ax.grid()
     ax.legend()
 
     # Save figure
     if not os.path.exists('images'): os.makedirs('images')
     fname = 'spectra_lin.png'
-    print('Writing images/%s to file' % (fname))
+    print('Writing images/%s' % (fname))
     plt.savefig('images/%s' % (fname), bbox_inches=bbox_inches)
 
     # Log scale
@@ -364,9 +398,61 @@ def plot_spectra(source, response):
 
     # Save figure
     fname = 'spectra_log.png'
-    print('Writing images/%s to file' % (fname))
+    print('Writing images/%s' % (fname))
     plt.savefig('images/%s' % (fname), bbox_inches=bbox_inches)
 
     plt.close()
+
+def get_mat_name_short(mat_name):
+    if mat_name in mat_names_short.keys(): return mat_names_short[mat_name]
+    return mat_name
+
+mat_names_short = {
+    'void'                               : 'Void'                 ,
+    'Air (dry, near sea level)'          : 'Air'                  ,
+    'Aluminum (Al)'                      : 'Al'                   ,
+    'Aluminum Oxide (Al2O3)'             : 'Al2O3'                ,
+    'Aluminum, alloy 6061-O'             : 'Al-6061O'             ,
+    'Beryllium (Be)'                     : 'Be'                   ,
+    'Beryllium Oxide (BeO)'              : 'BeO'                  ,
+    'Bismuth (Bi)'                       : 'Bi'                   ,
+    'Boron (B)'                          : 'B'                    ,
+    'Cadmium (Cd)'                       : 'Cd'                   ,
+    'Calcium Fluoride (CaF2)'            : 'CaF2'                 ,
+    'Calcium Oxide (CaO)'                : 'CaO'                  ,
+    'Carbon, Graphite (reactor grade)'   : 'Graphite'             ,
+    'Concrete, M-1'                      : 'Concrete (M1)'        ,
+    'Concrete, Regulatory Concrete'
+    ' (developed for U.S. NRC)'          : 'Concrete (regulatory)',
+    'Copper (Cu)'                        : 'Cu'                   ,
+    'Earth, U.S. Average'                : 'Earth'                ,
+    'Gadolinium (Gd)'                    : 'Gd'                   ,
+    'Iron (Fe)'                          : 'Fe'                   ,
+    'Lead (Pb)'                          : 'Pb'                   ,
+    'Lithium (Li)'                       : 'Li'                   ,
+    'Lithium Fluoride (LiF)'             : 'LiF'                  ,
+    'Lithium Oxide (Li2O)'               : 'Li2O'                 ,
+    'Magnesium (Mg)'                     : 'Mg'                   ,
+    'Magnesium Oxide (MgO)'              : 'MgO'                  ,
+    'Nickel (Ni)'                        : 'Ni'                   ,
+    'Polyethylene, Borated'              : 'Borated HDPE'         ,
+    'Polyethylene, Non-borated (C2H4)'   : 'HDPE'                 ,
+    'Titanium (Ti)'                      : 'Ti'                   ,
+    'Titanium Dioxide (TiO2)'            : 'TiO2'                 ,
+    'Water, Heavy (D2O)'                 : 'D2O'                  ,
+    'Water, Liquid (H2O)'                : 'H2O'                  ,
+    'Zircaloy-4'                         : 'Zircaloy-4'           ,
+    'Calcium (Ca)'                       : 'Ca'                   ,
+    'Vanadium (V)'                       : 'V'                    ,
+    'Nickel-60'                          : 'Ni-60'                ,
+    'Magnesium Fluoride (MgF2)'          : 'MgF2'                 ,
+    'Aluminum Fluoride (AlF3)'           : 'AlF3'                 ,
+    'Titanium(III) Fluoride (TiF3)'      : 'TiF3'                 ,
+    'Fluental'                           : 'Fluental'             ,
+    '5% Borated Polyethylene (SWX-201)'  : '5% boron HDPE'        ,
+    '30% Boron Polyethylene (SWX-210)'   : '30% boron HDPE'       ,
+    '7.5% Lithium Polyethylene (SWX-215)': '7.5% lithium HDPE'    ,
+    'Poly-Biz Gamma Shield (SWX-217)'    : 'Poly-Biz'             ,
+    '70% AlF3, 30% Al'                   : '70% AlF3 30% Al'      }
 
 if __name__ == '__main__': main()

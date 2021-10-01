@@ -2,7 +2,7 @@ CARIBU modeling
 c
 c  Author:       Lucas Jacobson
 c  Created on:   July 16, 2019
-c  Last updated: September 28, 2021
+c  Last updated: October 1, 2021
 c
 c  Copyright 2021, Phoenix, LLC. All rights reserved.
 c
@@ -21,22 +21,30 @@ c
   801   0             -801 111 103.2                                            $ Void region 1
   802   0             -801 103.1 131:-102 101.1                                 $ Void region 2
 c
-  901   4  -0.001205  -901                                                      $ Dummy cell: air
-  902  13  -2.7       -902                                                      $ Dummy cell: aluminum
-  903  25  -1.848     -903                                                      $ Dummy cell: beryllium
-  904  27  -3.01      -904                                                      $ Dummy cell: beryllium oxide
-  905  41  -2.37      -905                                                      $ Dummy cell: boron
-  906  69  -1.7       -906                                                      $ Dummy cell: graphite
-  907 109  -2.3       -907                                                      $ Dummy cell: concrete
-  908 112  -8.96      -908                                                      $ Dummy cell: copper
-  909 144  -7.9004    -909                                                      $ Dummy cell: gadolinium
-  910 172  -7.874     -910                                                      $ Dummy cell: iron
-  911 274  -1.0       -911                                                      $ Dummy cell: borated HDPE
-  912 275  -0.93      -912                                                      $ Dummy cell: HDPE
-  913 391  -1.1044    -913                                                      $ Dummy cell: heavy water
-  914 392  -0.997     -914                                                      $ Dummy cell: light water
-  915 406  -6.56      -915                                                      $ Dummy cell: ziracloy-4
-  916 501 -19.1       -916                                                      $ Dummy cell: uranium-235
+c ------------------------------------------------------------------------------
+c     Dummy cells
+c ------------------------------------------------------------------------------
+c
+  901   4  -0.001205  -901                                                      $ Air (dry, near sea level)
+  902  13  -2.7       -902                                                      $ Aluminum, alloy 6061-O
+  903  25  -1.848     -903                                                      $ Beryllium (Be)
+  904  27  -3.01      -904                                                      $ Beryllium Oxide (BeO)
+  905  41  -2.37      -905                                                      $ Boron (B)
+  906  69  -1.7       -906                                                      $ Carbon, Graphite (reactor grade)
+  907 109  -2.3       -907                                                      $ Concrete, Regulatory Concrete (developed for U.S. NRC)
+  908 112  -8.96      -908                                                      $ Copper (Cu)
+  909 144  -7.9004    -909                                                      $ Gadolinium (Gd)
+  910 172  -7.874     -910                                                      $ Iron (Fe)
+  911 274  -1.0       -911                                                      $ Polyethylene, Borated
+  912 275  -0.93      -912                                                      $ Polyethylene, Non-borated (C2H4)
+  913 391  -1.1044    -913                                                      $ Water, Heavy (D2O)
+  914 392  -0.997     -914                                                      $ Water, Liquid (H2O)
+  915 406  -6.56      -915                                                      $ Zircaloy-4
+  916 501 -19.1       -916                                                      $ Uranium-235
+c
+c ------------------------------------------------------------------------------
+c     Rest of universe
+c ------------------------------------------------------------------------------
 c
   999   0              801 900                                                  $ Rest of universe
 
@@ -60,6 +68,10 @@ c
   801    rpp    -20.0      20.0     -20.0      20.0     -20.0      20.0
 c
   900    rpp   1000.5    1016.5      -0.5       0.5      -0.5       0.5
+c
+c ------------------------------------------------------------------------------
+c     Dummy cells
+c ------------------------------------------------------------------------------
 c
   901    rpp   1000.5    1001.5      -0.5       0.5      -0.5       0.5
   902    rpp   1001.5    1002.5      -0.5       0.5      -0.5       0.5
@@ -100,81 +112,36 @@ c     Coordinate transforms
 c ------------------------------------------------------------------------------
 c
 c ------------------------------------------------------------------------------
-c     Tallies
+c     Tallies for ADVANTG
 c ------------------------------------------------------------------------------
 c
-  fc4         Fission rate (for ADVANTG)
-  f4:n        131
-  fq4         e m
-  fm4         (4.89368e9 501 -6)
-c
-  fc14        Neutron flux, 3 energy bins
-  f14:n       131
-  e14         5e-7 1 100
-  fq14        e m
-  fm14        (1e11) (4.89368e9 501 -6)
-c
-  fc24        Neutron flux, 3 different energy bins
-  f24:n       131
-  e24         1e-5 1 100
-  fq24        e m
-  fm24        (1e11) (4.89368e9 501 -6)
-c
-  fc34        Neutron energy spectrum
-  f34:n       131
-  e34         1e-11 207ilog 100
-  fq34        e m
-  fm34        (1e11) (4.89368e9 501 -6)
-c
-c ------------------------------------------------------------------------------
-c     Mesh tallies
-c ------------------------------------------------------------------------------
-c
-  fc204       Neutron flux, 3 energy bins
-  fmesh204:n  geom=cyl
-              out=ij
-              axs=1 0 0
-              vec=0 1 0
-              origin=-20.0
-                       0.0
-                       0.0
-              imesh=  20.0  iints= 40
-              jmesh=  40.0  jints= 80
-              kmesh=   1.0  kints=  1
-              emesh=5e-7 0.01 100 eints=1 2r
-  fm204       1e11
+  fc204   Fission rate [1/cm^3-s]
+  f204:n  131
+  fm204   (4.89368e9 501 -6)
 c
 c ------------------------------------------------------------------------------
 c
-  fc214       Neutron flux, 3 different energy bins
-  fmesh214:n  geom=cyl
-              out=ij
-              axs=1 0 0
-              vec=0 1 0
-              origin=-20.0
-                       0.0
-                       0.0
-              imesh=  20.0  iints= 40
-              jmesh=  40.0  jints= 80
-              kmesh=   1.0  kints=  1
-              emesh=1e-5 0.01 100 eints=1 2r
-  fm214       1e11
+c     +------------------------+--------+---------------+--------+
+c     | Quantity               | Symbol | Value         | Units  |
+c     +------------------------+--------+---------------+--------+
+c     | Source strength        | S      | 1e11          | 1/s    |
+c     | Avogadro constant      | NA     | 6.02214076e23 | 1/mol  |
+c     | Density of U-235       | rho    | 19.1          | g/cm^3 |
+c     | Atomic mass of U-235   | A      | 235.04392819  | g/mol  |
+c     +------------------------+--------+---------------+--------+
 c
-c ------------------------------------------------------------------------------
+c     +----------------------+-------------+--------------+
+c     | Description          | Unit change | New units    |
+c     +----------------------+-------------+--------------+
+c     | Raw tally result     |             | b/cm^2       |
+c     | Multiply by S        | 1/s         | b/cm^2-s     |
+c     | Multiply by 1e-24    | b/cm^2      | 1/s          |
+c     | Multiply by rho*NA/A | 1/cm^3      | 1/cm^3-s     |
+c     +----------------------+-------------+--------------+
 c
-  fc224       Fission rate
-  fmesh224:n  geom=cyl
-              out=ij
-              axs=1 0 0
-              vec=0 1 0
-              origin=-20.0
-                       0.0
-                       0.0
-              imesh=  20.0  iints= 40
-              jmesh=  40.0  jints= 80
-              kmesh=   1.0  kints=  1
-              emesh=1e-5 0.01 100 eints=1 2r
-  fm224       (4.89368e9 501 -6)
+c     +-----------------------------------------------------+-----------+
+c     | Tally multiplier constant for fission rate in U-235 | 4.89368e9 |
+c     +-----------------------------------------------------+-----------+
 c
 c ------------------------------------------------------------------------------
 c     Materials
@@ -313,7 +280,7 @@ c mt275  h-poly.40t
 c
 c ------------------------------------------------------------------------------
 c
-c         Water, Heavy (H2O)
+c         Water, Heavy (D2O)
 c         rho = 1.1044 g/cm^3
 c
   m391     1002.00c  6.66667000e-01      8016.00c  3.32523001e-01

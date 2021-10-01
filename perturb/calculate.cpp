@@ -1,9 +1,11 @@
 #include "H5Cpp.h"
 #include "boost/multi_array.hpp"
 #include <chrono>
+#include <fstream>
 #include <iostream>
 #include <map>
 #include <typeindex>
+#include <vector>
 
 #define PI 3.14159265358979323846
 #define FOURPI (4.0 * PI)
@@ -27,6 +29,7 @@ using boost::array;
 using boost::extents;
 using boost::multi_array;
 using boost::detail::multi_array::multi_array_base;
+using std::vector;
 using std::chrono::duration;
 using std::chrono::duration_cast;
 using std::chrono::high_resolution_clock;
@@ -93,96 +96,113 @@ int main() {
   high_resolution_clock::time_point begin, end;
   double elapsed;
 
-  // Create HDF5 file objects
-  std::string fname_fwd_inp = "fwd_solution/denovo-forward.inp.h5";
-  std::string fname_adj_inp = "adj_solution/denovo-adjoint.inp.h5";
-  std::string fname_fwd_out = "fwd_solution/denovo-forward.out.h5";
-  std::string fname_adj_out = "adj_solution/denovo-adjoint.out.h5";
-  std::string fname_xs = "custom_output/xs.h5";
-  H5::H5File hf_fwd_inp(fname_fwd_inp.c_str(), H5F_ACC_RDONLY);
-  H5::H5File hf_adj_inp(fname_adj_inp.c_str(), H5F_ACC_RDONLY);
-  H5::H5File hf_fwd_out(fname_fwd_out.c_str(), H5F_ACC_RDONLY);
-  H5::H5File hf_adj_out(fname_adj_out.c_str(), H5F_ACC_RDONLY);
-  H5::H5File hf_xs(fname_xs.c_str(), H5F_ACC_RDONLY);
+  // Get tally IDs
+  std::string fname = "tally_list.txt";
+  std::ifstream infile(fname);
+  std::string buffer;
+  vector<int> tallies;
+  while (std::getline(infile, buffer)) {
+    int tally = std::stof(buffer);
+    tallies.push_back(tally);
+  }
+  int nas = tallies.size();
 
-  // Create arrays for data to be read from HDF5
-  multi_array<int, 1> mesh_g_fwd, mesh_g_adj;
-  multi_array<int, 3> matids, source_ids, response_ids;
-  multi_array<double, 1> group_bounds_n, group_bounds_p, quadrature_weights,
-      mesh_x, mesh_y, mesh_z;
-  multi_array<double, 2> source_spectra, response_spectra, quadrature_angles,
-      sigma_t;
-  multi_array<double, 3> source_strength, response_strength, sigma_s;
-  multi_array<double, 5> angular_flux_fwd, angular_flux_adj;
+  // Create HDF5 file objects
+  H5::H5File hf_xs("hdf5/advantg_xs.h5", H5F_ACC_RDONLY);
+  H5::H5File hf_fi("hdf5/advantg_fwd_inp.h5", H5F_ACC_RDONLY);
+  H5::H5File hf_fo("hdf5/advantg_fwd_out.h5", H5F_ACC_RDONLY);
+  vector<H5::H5File> hf_ai(nas), hf_ao(nas);
+  for (int ias = 0; ias < nas; ias++) {
+    std::string fname_ai =
+        "hdf5/advantg_adj_" + std::to_string(tallies[ias]) + "_inp.h5";
+    std::string fname_ao =
+        "hdf5/advantg_adj_" + std::to_string(tallies[ias]) + "_out.h5";
+    hf_ai[ias].openFile(fname_ai.c_str(), H5F_ACC_RDONLY);
+    hf_ao[ias].openFile(fname_ao.c_str(), H5F_ACC_RDONLY);
+  }
+
+  // Create arrays for miscellaneous data
+  multi_array<int, 3> matids;
+  multi_array<double, 1> quadrature_weights;
+  multi_array<double, 2> sigma_t, quadrature_angles;
+  multi_array<double, 3> sigma_s;
   multi_array<MixData, 1> mixtable;
+
+  // Create arrays for forward data
+  multi_array<int, 1> mesh_g_fwd;
+  multi_array<double, 2> source_spectra_fwd;
+  multi_array<double, 3> source_strength_fwd;
+  multi_array<double, 5> angular_flux_fwd;
+
+  // Create vectors of arrays for adjoint data
+  vector<multi_array<int, 1>> mesh_g_adj(nas);
+  vector<multi_array<double, 2>> source_spectra_adj(nas);
+  vector<multi_array<double, 3>> source_strength_adj(nas);
+  vector<multi_array<double, 5>> angular_flux_adj(nas);
 
   // Read data from HDF5
   TIME_START("Reading data from HDF5...");
-  read_hdf5_array(hf_fwd_inp, "group_bounds_n", group_bounds_n);
-  read_hdf5_array(hf_fwd_inp, "group_bounds_p", group_bounds_p);
-  read_hdf5_array(hf_fwd_inp, "mixtable", mixtable);
-  read_hdf5_array(hf_fwd_inp, "matids", matids);
-  read_hdf5_array(hf_fwd_inp, "volsrc/spectra", source_spectra);
-  read_hdf5_array(hf_fwd_inp, "volsrc/strength", source_strength);
-  read_hdf5_array(hf_fwd_inp, "volsrc/ids", source_ids);
-  read_hdf5_array(hf_adj_inp, "volsrc/spectra", response_spectra);
-  read_hdf5_array(hf_adj_inp, "volsrc/strength", response_strength);
-  read_hdf5_array(hf_adj_inp, "volsrc/ids", response_ids);
-  read_hdf5_array(hf_fwd_out, "denovo/quadrature_angles", quadrature_angles);
-  read_hdf5_array(hf_fwd_out, "denovo/quadrature_weights", quadrature_weights);
-  read_hdf5_array(hf_fwd_out, "denovo/mesh_x", mesh_x);
-  read_hdf5_array(hf_fwd_out, "denovo/mesh_y", mesh_y);
-  read_hdf5_array(hf_fwd_out, "denovo/mesh_z", mesh_z);
-  read_hdf5_array(hf_fwd_out, "denovo/mesh_g", mesh_g_fwd);
-  read_hdf5_array(hf_adj_out, "denovo/mesh_g", mesh_g_adj);
-  read_hdf5_array(hf_fwd_out, "denovo/angular_flux", angular_flux_fwd);
-  read_hdf5_array(hf_adj_out, "denovo/angular_flux", angular_flux_adj);
   read_hdf5_array(hf_xs, "sigma_t", sigma_t);
   read_hdf5_array(hf_xs, "sigma_s", sigma_s);
+  read_hdf5_array(hf_fi, "mixtable", mixtable);
+  read_hdf5_array(hf_fi, "matids", matids);
+  read_hdf5_array(hf_fo, "denovo/quadrature_angles", quadrature_angles);
+  read_hdf5_array(hf_fo, "denovo/quadrature_weights", quadrature_weights);
+  read_hdf5_array(hf_fi, "volsrc/spectra", source_spectra_fwd);
+  read_hdf5_array(hf_fi, "volsrc/strength", source_strength_fwd);
+  read_hdf5_array(hf_fo, "denovo/mesh_g", mesh_g_fwd);
+  read_hdf5_array(hf_fo, "denovo/angular_flux", angular_flux_fwd);
+  for (int ias = 0; ias < nas; ias++) {
+    read_hdf5_array(hf_ai[ias], "volsrc/spectra", source_spectra_adj[ias]);
+    read_hdf5_array(hf_ai[ias], "volsrc/strength", source_strength_adj[ias]);
+    read_hdf5_array(hf_ao[ias], "denovo/mesh_g", mesh_g_adj[ias]);
+    read_hdf5_array(hf_ao[ias], "denovo/angular_flux", angular_flux_adj[ias]);
+  }
   TIME_END();
 
-  // +---------------------------------------------------------------------+
-  // |                    Array extents for reference                      |
-  // +--------------------+-----------------------+------------------------+
-  // | group_bounds_n     | (28,)                 |                        |
-  // | group_bounds_p     | (20,)                 |                        |
-  // | mixtable           | (17,)                 |                        |
-  // | matids             | (44, 44, 43)          | [nz][ny][nx]           |
-  // | source_spectra     | (1, 46)               | [0][ngx]               |
-  // | source_strength    | (44, 44, 43)          | [nz][ny][nx]           |
-  // | source_ids         | (44, 44, 43)          | [nz][ny][nx]           |
-  // | response_spectra   | (1, 46)               | [0][ngx]               |
-  // | response_strength  | (44, 44, 43)          | [nz][ny][nx]           |
-  // | response_ids       | (44, 44, 43)          | [nz][ny][nx]           |
-  // | quadrature_angles  | (128, 3)              | [na][3]                |
-  // | quadrature_weights | (128,)                | [na]                   |
-  // | mesh_x             | (44,)                 | [nx + 1]               |
-  // | mesh_y             | (45,)                 | [ny + 1]               |
-  // | mesh_z             | (45,)                 | [nz + 1]               |
-  // | mesh_g_fwd         | (26,)                 | [ngff]                 |
-  // | mesh_g_adj         | (26,)                 | [ngfa]                 |
-  // | angular_flux_fwd   | (26, 44, 44, 43, 128) | [ngff][nz][ny][nx][na] |
-  // | angular_flux_adj   | (26, 44, 44, 43, 128) | [ngfa][nz][ny][nx][na] |
-  // | sigma_t            | (17, 46)              | [nm][ngx]              |
-  // | sigma_s            | (17, 46, 46)          | [nm][ngx][ngx]         |
-  // +--------------------+-----------------------+------------------------+
+  // +----------------------------------------------------------------------+
+  // |                      Array extents for reference                     |
+  // +------------------------+-----------------------+---------------------+
+  // | sigma_t                | (39, 46)              | nm,ngx              |
+  // | sigma_s                | (39, 46, 46)          | nm,ngx,ngx          |
+  // | mixtable               | (1281,)               |                     |
+  // | matids                 | (45, 45, 45)          | nz,ny,nx            |
+  // | quadrature_angles      | (128, 3)              | na,3                |
+  // | quadrature_weights     | (128,)                | na                  |
+  // | source_spectra_fwd     | (1, 46)               | 0,ngx               |
+  // | source_strength_fwd    | (45, 45, 45)          | nz,ny,nx            |
+  // | mesh_g_fwd             | (46,)                 | ngff                |
+  // | angular_flux_fwd       | (46, 45, 45, 45, 128) | ngff,nz,ny,nx,na    |
+  // | source_spectra_adj [0] | (1, 46)               | 0,ngx               |
+  // | source_strength_adj[0] | (45, 45, 45)          | nz,ny,nx            |
+  // | mesh_g_adj         [0] | (20,)                 | ngfa[0]             |
+  // | angular_flux_adj   [0] | (20, 45, 45, 45, 128) | ngfa[0],nz,ny,nx,na |
+  // +------------------------+-----------------------+---------------------+
 
   // Relevant dimensions
-  int nm = sigma_t.shape()[0];            // Number of pure materials
-  int ngx = sigma_t.shape()[1];           // Number of energy groups in XS
-  int ngff = angular_flux_fwd.shape()[0]; // Number of energy groups in fwd flux
-  int ngfa = angular_flux_adj.shape()[0]; // Number of energy groups in adj flux
-  int nz = angular_flux_fwd.shape()[1];   // Number of Z intervals
-  int ny = angular_flux_fwd.shape()[2];   // Number of Y intervals
-  int nx = angular_flux_fwd.shape()[3];   // Number of X intervals
-  int na = angular_flux_fwd.shape()[4];   // Number of angles
+  int nm = sigma_t.shape()[0];          // Number of pure materials
+  int ngx = sigma_t.shape()[1];         // Number of energy groups in XS
+  int nz = angular_flux_fwd.shape()[1]; // Number of Z intervals
+  int ny = angular_flux_fwd.shape()[2]; // Number of Y intervals
+  int nx = angular_flux_fwd.shape()[3]; // Number of X intervals
+  int na = angular_flux_fwd.shape()[4]; // Number of angles
 
-  // First energy group in flux
-  int g0f = mesh_g_fwd[0];
-  int g0a = mesh_g_adj[0];
+  // Number of energy groups
+  int ngff = angular_flux_fwd.shape()[0]; // Forward flux
+  vector<int> ngfa(nas);
+  for (int ias = 0; ias < nas; ias++) {
+    ngfa[ias] = angular_flux_adj[ias].shape()[0]; // Adjoint flux
+  }
 
   // Number of mixed materials
   int nmix = mixtable[mixtable.shape()[0] - 1].row + 1;
+
+  // First energy group in flux
+  int g0f = mesh_g_fwd[0]; // Forward flux
+  vector<int> g0a(nas);
+  for (int ias = 0; ias < nas; ias++) {
+    g0a[ias] = mesh_g_adj[ias][0];
+  }
 
   // Calculate reverse angle map
   TIME_START("Calculating reverse angle map...");
@@ -238,18 +258,30 @@ int main() {
   }
   TIME_END();
 
-  // Calculate source and response
-  TIME_START("Calculating source and response...");
-  multi_array<double, 4> source{extents[ngx][nz][ny][nx]};
-  multi_array<double, 4> response{extents[ngx][nz][ny][nx]};
+  // Calculate 4D sources
+  TIME_START("Calculating 4D sources...");
+  multi_array<double, 4> source_fwd{extents[ngx][nz][ny][nx]};
+  multi_array<double, 5> source_adj{extents[nas][ngx][nz][ny][nx]};
   for (int igx = 0; igx < ngx; igx++) { // Energy index
-    double spec_src = source_spectra[0][igx];
-    double spec_res = response_spectra[0][igx];
+    double spec_fwd = source_spectra_fwd[0][igx];
     for (int iz = 0; iz < nz; iz++) {     // Z mesh index
       for (int iy = 0; iy < ny; iy++) {   // Y mesh index
         for (int ix = 0; ix < nx; ix++) { // X mesh index
-          source[igx][iz][iy][ix] = source_strength[iz][iy][ix] * spec_src;
-          response[igx][iz][iy][ix] = response_strength[iz][iy][ix] * spec_res;
+          source_fwd[igx][iz][iy][ix] =
+              source_strength_fwd[iz][iy][ix] * spec_fwd;
+        }
+      }
+    }
+  }
+  for (int ias = 0; ias < nas; ias++) {   // Adjoint source index
+    for (int igx = 0; igx < ngx; igx++) { // Energy index
+      double spec_adj = source_spectra_adj[ias][0][igx];
+      for (int iz = 0; iz < nz; iz++) {     // Z mesh index
+        for (int iy = 0; iy < ny; iy++) {   // Y mesh index
+          for (int ix = 0; ix < nx; ix++) { // X mesh index
+            source_adj[ias][igx][iz][iy][ix] =
+                source_strength_adj[ias][iz][iy][ix] * spec_adj;
+          }
         }
       }
     }
@@ -259,26 +291,44 @@ int main() {
   // Calculate scalar flux
   TIME_START("Calculating scalar flux...");
   multi_array<double, 4> scalar_flux_fwd{extents[ngx][nz][ny][nx]};
-  multi_array<double, 4> scalar_flux_adj{extents[ngx][nz][ny][nx]};
-  multi_array<double, 4> scalar_flux_con{extents[ngx][nz][ny][nx]};
-  for (int igx = 0; igx < ngx; igx++) {                  // Energy index
-    for (int iz = 0; iz < nz; iz++) {                    // Z mesh index
-      for (int iy = 0; iy < ny; iy++) {                  // Y mesh index
-        for (int ix = 0; ix < nx; ix++) {                // X mesh index
-          for (int ia = 0; ia < na; ia++) {              // Angle index
-            double qw = quadrature_weights[ia] / FOURPI; // Quadrature weight
-            int ja = reverse_angle_map[ia];              // Reverse angle index
+  multi_array<double, 5> scalar_flux_adj{extents[nas][ngx][nz][ny][nx]};
+  multi_array<double, 5> scalar_flux_con{extents[nas][ngx][nz][ny][nx]};
+  for (int igx = 0; igx < ngx; igx++) {     // Energy index
+    for (int iz = 0; iz < nz; iz++) {       // Z mesh index
+      for (int iy = 0; iy < ny; iy++) {     // Y mesh index
+        for (int ix = 0; ix < nx; ix++) {   // X mesh index
+          for (int ia = 0; ia < na; ia++) { // Angle index
+            double qw = quadrature_weights[ia] / FOURPI;
             double ffwd = 0.0;
-            double fadj = 0.0;
             if (igx - g0f >= 0 && igx - g0f < ngff) {
               ffwd = angular_flux_fwd[igx - g0f][iz][iy][ix][ia] * qw;
             }
-            if (igx - g0a >= 0 && igx - g0a < ngfa) {
-              fadj = angular_flux_adj[igx - g0a][iz][iy][ix][ja] * qw;
-            }
             scalar_flux_fwd[igx][iz][iy][ix] += ffwd;
-            scalar_flux_adj[igx][iz][iy][ix] += fadj;
-            scalar_flux_con[igx][iz][iy][ix] += ffwd * fadj;
+          }
+        }
+      }
+    }
+  }
+  for (int ias = 0; ias < nas; ias++) {       // Adjoint source index
+    for (int igx = 0; igx < ngx; igx++) {     // Energy index
+      for (int iz = 0; iz < nz; iz++) {       // Z mesh index
+        for (int iy = 0; iy < ny; iy++) {     // Y mesh index
+          for (int ix = 0; ix < nx; ix++) {   // X mesh index
+            for (int ia = 0; ia < na; ia++) { // Angle index
+              double qw = quadrature_weights[ia] / FOURPI;
+              int ja = reverse_angle_map[ia];
+              double ffwd = 0.0;
+              double fadj = 0.0;
+              if (igx - g0f >= 0 && igx - g0f < ngff) {
+                ffwd = angular_flux_fwd[igx - g0f][iz][iy][ix][ia] * qw;
+              }
+              if (igx - g0a[ias] >= 0 && igx - g0a[ias] < ngfa[ias]) {
+                fadj =
+                    angular_flux_adj[ias][igx - g0a[ias]][iz][iy][ix][ja] * qw;
+              }
+              scalar_flux_adj[ias][igx][iz][iy][ix] += fadj;
+              scalar_flux_con[ias][igx][iz][iy][ix] += ffwd * fadj;
+            }
           }
         }
       }
@@ -289,32 +339,49 @@ int main() {
   // Calculate current
   TIME_START("Calculating current...");
   multi_array<double, 5> current_fwd{extents[ngx][nz][ny][nx][3]};
-  multi_array<double, 5> current_adj{extents[ngx][nz][ny][nx][3]};
-  multi_array<double, 5> current_con{extents[ngx][nz][ny][nx][3]};
-  for (int igx = 0; igx < ngx; igx++) {                  // Energy index
-    for (int iz = 0; iz < nz; iz++) {                    // Z mesh index
-      for (int iy = 0; iy < ny; iy++) {                  // Y mesh index
-        for (int ix = 0; ix < nx; ix++) {                // X mesh index
-          for (int ia = 0; ia < na; ia++) {              // Angle index
-            double qw = quadrature_weights[ia] / FOURPI; // Quadrature weight
+  multi_array<double, 6> current_adj{extents[nas][ngx][nz][ny][nx][3]};
+  multi_array<double, 6> current_con{extents[nas][ngx][nz][ny][nx][3]};
+  for (int igx = 0; igx < ngx; igx++) {     // Energy index
+    for (int iz = 0; iz < nz; iz++) {       // Z mesh index
+      for (int iy = 0; iy < ny; iy++) {     // Y mesh index
+        for (int ix = 0; ix < nx; ix++) {   // X mesh index
+          for (int ia = 0; ia < na; ia++) { // Angle index
+            double qw = quadrature_weights[ia] / FOURPI;
             double affwd = 0.0;
-            double afadj = 0.0;
             if (igx - g0f >= 0 && igx - g0f < ngff) {
               affwd = angular_flux_fwd[igx - g0f][iz][iy][ix][ia] * qw;
-            }
-            if (igx - g0a >= 0 && igx - g0a < ngfa) {
-              afadj = angular_flux_adj[igx - g0a][iz][iy][ix][ia] * qw;
             }
             for (int id = 0; id < 3; id++) { // Dimension index
               double qa = quadrature_angles[ia][id];
               current_fwd[igx][iz][iy][ix][id] += affwd * qa;
-              current_adj[igx][iz][iy][ix][id] += afadj * qa;
             }
           }
-          for (int id = 0; id < 3; id++) {
-            current_con[igx][iz][iy][ix][id] =
-                current_fwd[igx][iz][iy][ix][id] *
-                current_adj[igx][iz][iy][ix][id];
+        }
+      }
+    }
+  }
+  for (int ias = 0; ias < nas; ias++) {       // Adjoint source index
+    for (int igx = 0; igx < ngx; igx++) {     // Energy index
+      for (int iz = 0; iz < nz; iz++) {       // Z mesh index
+        for (int iy = 0; iy < ny; iy++) {     // Y mesh index
+          for (int ix = 0; ix < nx; ix++) {   // X mesh index
+            for (int ia = 0; ia < na; ia++) { // Angle index
+              double qw = quadrature_weights[ia] / FOURPI;
+              double afadj = 0.0;
+              if (igx - g0a[ias] >= 0 && igx - g0a[ias] < ngfa[ias]) {
+                afadj =
+                    angular_flux_adj[ias][igx - g0a[ias]][iz][iy][ix][ia] * qw;
+              }
+              for (int id = 0; id < 3; id++) { // Dimension index
+                double qa = quadrature_angles[ia][id];
+                current_adj[ias][igx][iz][iy][ix][id] += afadj * qa;
+              }
+            }
+            for (int id = 0; id < 3; id++) { // Dimension index
+              current_con[ias][igx][iz][iy][ix][id] =
+                  current_fwd[igx][iz][iy][ix][id] *
+                  current_adj[ias][igx][iz][iy][ix][id];
+            }
           }
         }
       }
@@ -324,36 +391,38 @@ int main() {
 
   // Calculate dR using angular flux
   TIME_START("Calculating dR...");
-  multi_array<double, 4> dR{extents[nm][nz][ny][nx]};
-  for (int im = 0; im < nm; im++) {       // Pure material index
-    for (int iz = 0; iz < nz; iz++) {     // Z mesh index
-      for (int iy = 0; iy < ny; iy++) {   // Y mesh index
-        for (int ix = 0; ix < nx; ix++) { // X mesh index
-          int imix = matids[iz][iy][ix];  // Mixed material index
-          // Total component of dR
-          double dR_t = 0.0;
-          for (int igx = 0; igx < ngx; igx++) { // Energy index
-            // Scalar contributon flux
-            double sfc = scalar_flux_con[igx][iz][iy][ix];
-            // Perturbation in total cross section
-            double dst = sigma_t_pert[imix][im][igx];
-            dR_t += sfc * dst;
-          }
-          // Scattering component of dR
-          double dR_s = 0.0;
-          for (int igx = 0; igx < ngx; igx++) { // Energy index
-            // Scalar adjoint flux (at E)
-            double sfa = scalar_flux_adj[igx][iz][iy][ix];
-            for (int jgx = 0; jgx < ngx; jgx++) { // E' index
-              // Perturbation in scattering cross section (E' -> E)
-              double dss = sigma_s_pert[imix][im][igx][jgx];
-              // Scalar forward flux (at E')
-              double sff = scalar_flux_fwd[jgx][iz][iy][ix];
-              dR_s += dss * sff * sfa;
+  multi_array<double, 5> dR{extents[nas][nm][nz][ny][nx]};
+  for (int ias = 0; ias < nas; ias++) {     // Adjoint source index
+    for (int im = 0; im < nm; im++) {       // Pure material index
+      for (int iz = 0; iz < nz; iz++) {     // Z mesh index
+        for (int iy = 0; iy < ny; iy++) {   // Y mesh index
+          for (int ix = 0; ix < nx; ix++) { // X mesh index
+            int imix = matids[iz][iy][ix];  // Mixed material index
+            // Total component of dR
+            double dR_t = 0.0;
+            for (int igx = 0; igx < ngx; igx++) { // Energy index
+              // Scalar contributon flux
+              double sfc = scalar_flux_con[ias][igx][iz][iy][ix];
+              // Perturbation in total cross section
+              double dst = sigma_t_pert[imix][im][igx];
+              dR_t += sfc * dst;
             }
+            // Scattering component of dR
+            double dR_s = 0.0;
+            for (int igx = 0; igx < ngx; igx++) { // Energy index
+              // Scalar adjoint flux (at E)
+              double sfa = scalar_flux_adj[ias][igx][iz][iy][ix];
+              for (int jgx = 0; jgx < ngx; jgx++) { // E' index
+                // Perturbation in scattering cross section (E' -> E)
+                double dss = sigma_s_pert[imix][im][igx][jgx];
+                // Scalar forward flux (at E')
+                double sff = scalar_flux_fwd[jgx][iz][iy][ix];
+                dR_s += dss * sff * sfa;
+              }
+            }
+            // Calculate dR
+            dR[ias][im][iz][iy][ix] = dR_s - dR_t;
           }
-          // Calculate dR
-          dR[im][iz][iy][ix] = dR_s - dR_t;
         }
       }
     }
@@ -362,22 +431,20 @@ int main() {
 
   // Write data to HDF5
   TIME_START("Writing data to HDF5...");
-  std::string fnameo = "custom_output/data.h5";
-  H5::H5File hfo(fnameo, H5F_ACC_TRUNC);
-  write_hdf5_array(hfo, "reverse_angle_map", reverse_angle_map);
-  write_hdf5_array(hfo, "source", source);
-  write_hdf5_array(hfo, "response", response);
-  write_hdf5_array(hfo, "sigma_t_mixed", sigma_t_mixed);
-  write_hdf5_array(hfo, "sigma_s_mixed", sigma_s_mixed);
-  write_hdf5_array(hfo, "sigma_t_pert", sigma_t_pert);
-  write_hdf5_array(hfo, "sigma_s_pert", sigma_s_pert);
-  write_hdf5_array(hfo, "scalar_flux_fwd", scalar_flux_fwd);
-  write_hdf5_array(hfo, "scalar_flux_adj", scalar_flux_adj);
-  write_hdf5_array(hfo, "scalar_flux_con", scalar_flux_con);
-  write_hdf5_array(hfo, "current_fwd", current_fwd);
-  write_hdf5_array(hfo, "current_adj", current_adj);
-  write_hdf5_array(hfo, "current_con", current_con);
-  write_hdf5_array(hfo, "dR", dR);
+  H5::H5File hf_o("hdf5/data.h5", H5F_ACC_TRUNC);
+  write_hdf5_array(hf_o, "sigma_t_mixed", sigma_t_mixed);
+  write_hdf5_array(hf_o, "sigma_s_mixed", sigma_s_mixed);
+  write_hdf5_array(hf_o, "sigma_t_pert", sigma_t_pert);
+  write_hdf5_array(hf_o, "sigma_s_pert", sigma_s_pert);
+  write_hdf5_array(hf_o, "source_fwd", source_fwd);
+  write_hdf5_array(hf_o, "source_adj", source_adj);
+  write_hdf5_array(hf_o, "scalar_flux_fwd", scalar_flux_fwd);
+  write_hdf5_array(hf_o, "scalar_flux_adj", scalar_flux_adj);
+  write_hdf5_array(hf_o, "scalar_flux_con", scalar_flux_con);
+  write_hdf5_array(hf_o, "current_fwd", current_fwd);
+  write_hdf5_array(hf_o, "current_adj", current_adj);
+  write_hdf5_array(hf_o, "current_con", current_con);
+  write_hdf5_array(hf_o, "dR", dR);
   TIME_END();
 
   return 0;
