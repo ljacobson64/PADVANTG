@@ -443,12 +443,14 @@ def plot_spectra(source_fwd, source_adj):
 
     # Plot spectra
     ng = source_fwd.shape[1]
-    ebins = np.array(range(ng))
-    xvals = np.insert(ebins, [0, len(ebins)], len(ebins))
-    yvals = np.insert(source_fwd[0, :], [0, len(ebins)], 0)
+    xvals = np.array(range(ng))
+    yvals = source_fwd[0, :]
+    xvals = np.insert(xvals, [0, ng], [0, ng])
+    yvals = np.insert(yvals, [0, ng], [0, 0 ])
     ax.step(xvals, yvals, where='post', label='Forward')
     for tally in source_adj.keys():
-        yvals = np.insert(source_adj[tally][0, :], [0, len(ebins)], 0)
+        yvals = source_adj[tally][0, :]
+        yvals = np.insert(yvals, [0, ng], [0, 0])
         ax.step(xvals, yvals, where='post', label='Adjoint (%u)' % (tally))
 
     # Formatting
