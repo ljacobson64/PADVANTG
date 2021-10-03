@@ -1,0 +1,65 @@
+c ------------------------------------------------------------------------------
+c     Tallies
+c ------------------------------------------------------------------------------
+c
+  fc204   Epithermal neutron flux [n/cm^2-s]
+  f204:n  1001
+  fm204   5e13
+  de204   lin 5e-7 5.00005e-7 0.0099999 0.01
+  df204   lin 0    1          1         0
+c
+  fc214   Thermal neutron flux [n/cm^2-s]
+  f214:n  1001
+  fm214   5e13
+  de214   lin 1e-11 4.99995e-7 5e-7
+  df214   lin 1     1          0
+c
+  fc221   Total neutron current [n/cm^2-s]
+  f221:n  1001.2
+  fm221   5e13
+  sd221   176.715  $ pi * 7.5^2
+  c221    0 1
+  cm221   0 1
+c
+  fc224   Total neutron flux [n/cm^2-s]
+  f224:n  1001
+  fm224   5e13
+c
+  fc234   Fast neutron dose rate in air [Gy/s]
+  f234:n  1001
+  fm234   (3.31621e2 4 1 -4)
+  de234   lin 0.01 0.0100001 100.0
+  df234   lin 0    1           1
+c
+  fc244   Gamma dose rate in air [Gy/s]
+  f244:p  1001
+  fm244   (3.31621e2 4 -5 -6)
+c
+c ------------------------------------------------------------------------------
+c
+c     +------------------------+--------+-----------------+-------+
+c     | Quantity               | Symbol | Value           | Units |
+c     +------------------------+--------+-----------------+-------+
+c     | Source strength        | S      | 5e13            | 1/s   |
+c     | Avogadro constant      | NA     | 6.02214076e23   | 1/mol |
+c     | J/eV conversion factor | e      | 1.602176634e-19 | J/eV  |
+c     | Atomic mass of air     | A      | 14.547535451998 | g/mol |
+c     +------------------------+--------+-----------------+-------+
+c
+c     +-------------------+-------------+--------------+
+c     | Description       | Unit change | New units    |
+c     +-------------------+-------------+--------------+
+c     | Raw tally result  |             | b-MeV/cm^2   |
+c     | Multiply by S     | 1/s         | b-MeV/cm^2-s |
+c     | Multiply by 1e-24 | b/cm^2      | MeV/s        |
+c     | Multiply by 1e6   | eV/MeV      | eV/s         |
+c     | Multiply by e     | J/eV        | J/s          |
+c     | Multiply by NA/A  | 1/g         | J/g-s        |
+c     | Multiply by 1e3   | g/kg        | Gy/s         |
+c     +-------------------+-------------+--------------+
+c
+c     +------------------------------------------------+-----------+
+c     | Tally multiplier constant for dose rate in air | 3.31621e2 |
+c     +------------------------------------------------+-----------+
+c
+c ------------------------------------------------------------------------------

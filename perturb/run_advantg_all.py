@@ -21,7 +21,18 @@ def main():
             tally = int(direc.split('-')[1])
             vals = ['false', 'true', 'mcnp_tallies%s%u' % (' ' * 16, tally)]
         with open('advantg.inp', 'w') as w: w.write(template.format(*vals))
-        os.system('cp -pv ../mcnp.i .')
+        with open('../mcnp.i', 'r') as r: lines = r.readlines()
+        s = ''
+        for line in lines:
+            tokens = line.split()
+            if len(tokens) == 0:
+                s += line
+                continue
+            if tokens[0].lower() == 'read':
+                with open('../%s' % (tokens[3]), 'r') as r: s += r.read()
+                continue
+            s += line
+        with open('mcnp.i', 'w') as w: w.write(s)
         os.system('bash ../../run_advantg_once.sh')
         os.chdir('..')
 
