@@ -3,7 +3,7 @@ dx_forward                  {}
 dx_adjoint                  {}
 
 anisn_library               27n19g
-anisn_upscatter             False
+anisn_upscatter             false
 
 denovo_verbose              true
 denovo_write_angular_flux   true
@@ -11,9 +11,9 @@ denovo_write_angular_flux   true
 mcnp_input                  mcnp.i
 {}
 
-denovo_x_blocks             3
-denovo_y_blocks             4
-denovo_z_blocks             3
+denovo_x_blocks             4
+denovo_y_blocks             6
+denovo_z_blocks             4
 
 mcnp_material_names           4 "Air (dry, near sea level)"
                              13 "Aluminum, alloy 6061-O"

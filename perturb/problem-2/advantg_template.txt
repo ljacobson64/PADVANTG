@@ -2,8 +2,8 @@ method                      dx
 dx_forward                  {}
 dx_adjoint                  {}
 
-anisn_library               27n19g
-anisn_upscatter             False
+anisn_library               bplus
+anisn_upscatter             false
 
 denovo_verbose              true
 denovo_write_angular_flux   true
@@ -11,9 +11,9 @@ denovo_write_angular_flux   true
 mcnp_input                  mcnp.i
 {}
 
-denovo_x_blocks             3
+denovo_x_blocks             6
 denovo_y_blocks             4
-denovo_z_blocks             3
+denovo_z_blocks             4
 
 mcnp_material_names           4 "Air (dry, near sea level)"
                               6 "Aluminum (Al)"
@@ -54,11 +54,11 @@ mcnp_material_names           4 "Air (dry, near sea level)"
                             604 "Poly-Biz Gamma Shield (SWX-217)"
                             705 "70% AlF3, 30% Al"
 
-mesh_x                      -155.0 205.0
-mesh_x_ints                         45
-mesh_y                      -180.0 180.0
-mesh_y_ints                         45
-mesh_z                         0.0 240.0
-mesh_z_ints                         45
+mesh_x                      -125.0 -95.0 175.0
+mesh_x_ints                          3    45
+mesh_y                      -120.0 -90.0  90.0 120.0
+mesh_y_ints                          3    30     3
+mesh_z                      -120.0 -90.0  90.0 120.0
+mesh_z_ints                          3    30     3
 
-# 45 * 45 * 45 = 91,125
+# 48 * 36 * 36 = 62,208
