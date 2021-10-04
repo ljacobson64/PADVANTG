@@ -1,3 +1,3 @@
 #!/bin/bash
 
-clang-format -i *.cpp
+clang-format -i *.cpp *.hpp
