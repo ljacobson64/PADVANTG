@@ -82,60 +82,12 @@ void PADVANTG::write_all_data() {
   TIME_END();
 }
 
-void PADVANTG::calculate_sigma_mixed() {
-  TIME_START("Calculating cross sections for mixed materials...");
+void PADVANTG::allocate_xs_arrays() {
+  TIME_START("Allocating cross section arrays...");
   sigma_t_mixed.resize(extents[nmix][ngx]);
   sigma_s_mixed.resize(extents[nmix][ngx][ngx]);
-  for (int i = 0; i < mixtable.shape()[0]; i++) { // Mix table entry index
-    int imix = mixtable[i].row;                   // Mixed material index
-    int im = mixtable[i].col;                     // Pure material index
-    double vol_frac = mixtable[i].val;            // Volume fraction
-    for (int igx = 0; igx < ngx; igx++) {         // Energy index
-      sigma_t_mixed[imix][igx] += sigma_t[im][igx] * vol_frac;
-      for (int jgx = 0; jgx < ngx; jgx++) { // Scattering energy index
-        sigma_s_mixed[imix][igx][jgx] += sigma_s[im][igx][jgx] * vol_frac;
-      }
-    }
-  }
-  TIME_END();
-}
-
-void PADVANTG::calculate_sigma_pert() {
-  TIME_START("Calculating perturbations in cross sections...");
   sigma_t_pert.resize(extents[nmix][nm][ngx]);
   sigma_s_pert.resize(extents[nmix][nm][ngx][ngx]);
-  for (int imix = 0; imix < nmix; imix++) { // Mixed material index
-    for (int im = 0; im < nm; im++) {       // Material index
-      for (int igx = 0; igx < ngx; igx++) { // Energy index
-        sigma_t_pert[imix][im][igx] =
-            sigma_t[im][igx] - sigma_t_mixed[imix][igx];
-        for (int jgx = 0; jgx < ngx; jgx++) { // Scattering energy index
-          sigma_s_pert[imix][im][igx][jgx] =
-              sigma_s[im][igx][jgx] - sigma_s_mixed[imix][igx][jgx];
-        }
-      }
-    }
-  }
-  TIME_END();
-}
-
-void PADVANTG::calculate_reverse_angle_map() {
-  TIME_START("Calculating reverse angle map...");
-  reverse_angle_map.resize(extents[na]);
-  for (int ia = 0; ia < na; ia++) {
-    double ix = quadrature_angles[ia][0];
-    double iy = quadrature_angles[ia][1];
-    double iz = quadrature_angles[ia][2];
-    for (int ja = 0; ja < na; ja++) {
-      double jx = quadrature_angles[ja][0];
-      double jy = quadrature_angles[ja][1];
-      double jz = quadrature_angles[ja][2];
-      if (ix == -jx and iy == -jy and iz == -jz) {
-        reverse_angle_map[ia] = ja;
-        break;
-      }
-    }
-  }
   TIME_END();
 }
 
@@ -159,8 +111,65 @@ void PADVANTG::allocate_adjoint_arrays() {
   TIME_END();
 }
 
+void PADVANTG::calculate_reverse_angle_map() {
+  TIME_START("Calculating reverse angle map...");
+  reverse_angle_map.resize(extents[na]);
+#pragma omp parallel for schedule(guided)
+  for (int ia = 0; ia < na; ia++) {
+    double ix = quadrature_angles[ia][0];
+    double iy = quadrature_angles[ia][1];
+    double iz = quadrature_angles[ia][2];
+    for (int ja = 0; ja < na; ja++) {
+      double jx = quadrature_angles[ja][0];
+      double jy = quadrature_angles[ja][1];
+      double jz = quadrature_angles[ja][2];
+      if (ix == -jx and iy == -jy and iz == -jz) {
+        reverse_angle_map[ia] = ja;
+        break;
+      }
+    }
+  }
+  TIME_END();
+}
+
+void PADVANTG::calculate_sigma_mixed() {
+  TIME_START("Calculating cross sections for mixed materials...");
+#pragma omp parallel for schedule(guided)
+  for (int i = 0; i < mixtable.shape()[0]; i++) { // Mix table entry index
+    int imix = mixtable[i].row;                   // Mixed material index
+    int im = mixtable[i].col;                     // Pure material index
+    double vol_frac = mixtable[i].val;            // Volume fraction
+    for (int igx = 0; igx < ngx; igx++) {         // Energy index
+      sigma_t_mixed[imix][igx] += sigma_t[im][igx] * vol_frac;
+      for (int jgx = 0; jgx < ngx; jgx++) { // Scattering energy index
+        sigma_s_mixed[imix][igx][jgx] += sigma_s[im][igx][jgx] * vol_frac;
+      }
+    }
+  }
+  TIME_END();
+}
+
+void PADVANTG::calculate_sigma_pert() {
+  TIME_START("Calculating perturbations in cross sections...");
+#pragma omp parallel for schedule(guided)
+  for (int imix = 0; imix < nmix; imix++) { // Mixed material index
+    for (int im = 0; im < nm; im++) {       // Material index
+      for (int igx = 0; igx < ngx; igx++) { // Energy index
+        sigma_t_pert[imix][im][igx] =
+            sigma_t[im][igx] - sigma_t_mixed[imix][igx];
+        for (int jgx = 0; jgx < ngx; jgx++) { // Scattering energy index
+          sigma_s_pert[imix][im][igx][jgx] =
+              sigma_s[im][igx][jgx] - sigma_s_mixed[imix][igx][jgx];
+        }
+      }
+    }
+  }
+  TIME_END();
+}
+
 void PADVANTG::calculate_forward_source() {
   TIME_START("Calculating forward 4D source...");
+#pragma omp parallel for schedule(guided)
   for (int igx = 0; igx < ngx; igx++) { // Energy index
     double spec_fwd = source_spectra_fwd[0][igx];
     for (int iz = 0; iz < nz; iz++) {     // Z mesh index
@@ -179,6 +188,7 @@ void PADVANTG::calculate_adjoint_source(int ias) {
   TIME_START(("Calculating adjoint 4D source for tally " +
               to_string(tallies[ias]) + "...")
                  .c_str());
+#pragma omp parallel for schedule(guided)
   for (int igx = 0; igx < ngx; igx++) { // Energy index
     double spec_adj = source_spectra_adj[0][igx];
     for (int iz = 0; iz < nz; iz++) {     // Z mesh index
@@ -195,6 +205,7 @@ void PADVANTG::calculate_adjoint_source(int ias) {
 
 void PADVANTG::calculate_forward_scalar_flux() {
   TIME_START("Calculating forward scalar flux...");
+#pragma omp parallel for schedule(guided)
   for (int igx = 0; igx < ngx; igx++) {     // Energy index
     for (int iz = 0; iz < nz; iz++) {       // Z mesh index
       for (int iy = 0; iy < ny; iy++) {     // Y mesh index
@@ -218,6 +229,7 @@ void PADVANTG::calculate_adjoint_scalar_flux(int ias) {
   TIME_START(("Calculating adjoint scalar flux for tally " +
               to_string(tallies[ias]) + "...")
                  .c_str());
+#pragma omp parallel for schedule(guided)
   for (int igx = 0; igx < ngx; igx++) {     // Energy index
     for (int iz = 0; iz < nz; iz++) {       // Z mesh index
       for (int iy = 0; iy < ny; iy++) {     // Y mesh index
@@ -245,6 +257,7 @@ void PADVANTG::calculate_adjoint_scalar_flux(int ias) {
 
 void PADVANTG::calculate_forward_current() {
   TIME_START("Calculating forward current...");
+#pragma omp parallel for schedule(guided)
   for (int igx = 0; igx < ngx; igx++) {     // Energy index
     for (int iz = 0; iz < nz; iz++) {       // Z mesh index
       for (int iy = 0; iy < ny; iy++) {     // Y mesh index
@@ -271,6 +284,7 @@ void PADVANTG::calculate_adjoint_current(int ias) {
   TIME_START(("Calculating adjoint current for tally " +
               to_string(tallies[ias]) + "...")
                  .c_str());
+#pragma omp parallel for schedule(guided)
   for (int igx = 0; igx < ngx; igx++) {     // Energy index
     for (int iz = 0; iz < nz; iz++) {       // Z mesh index
       for (int iy = 0; iy < ny; iy++) {     // Y mesh index
@@ -302,6 +316,7 @@ void PADVANTG::calculate_response(int ias) {
   TIME_START(
       ("Calculating response for tally " + to_string(tallies[ias]) + "...")
           .c_str());
+#pragma omp parallel for schedule(guided)
   for (int igx = 0; igx < ngx; igx++) {   // Energy index
     for (int iz = 0; iz < nz; iz++) {     // Z mesh index
       for (int iy = 0; iy < ny; iy++) {   // Y mesh index
@@ -319,6 +334,7 @@ void PADVANTG::calculate_response(int ias) {
 void PADVANTG::calculate_dR(int ias) {
   TIME_START(
       ("Calculating dR for tally " + to_string(tallies[ias]) + "...").c_str());
+#pragma omp parallel for schedule(guided)
   for (int im = 0; im < nm; im++) {       // Pure material index
     for (int iz = 0; iz < nz; iz++) {     // Z mesh index
       for (int iy = 0; iy < ny; iy++) {   // Y mesh index
@@ -360,13 +376,14 @@ void PADVANTG::run_all() {
   read_tally_ids();
   read_xs_data();
   read_forward_data();
+  allocate_xs_arrays();
+  allocate_forward_arrays();
+  calculate_reverse_angle_map();
   calculate_sigma_mixed();
   calculate_sigma_pert();
-  allocate_forward_arrays();
   calculate_forward_source();
   calculate_forward_scalar_flux();
   calculate_forward_current();
-  calculate_reverse_angle_map();
   allocate_adjoint_arrays();
   for (int i = 0; i < nas; i++) {
     read_adjoint_data(i); // ngfa, g0a

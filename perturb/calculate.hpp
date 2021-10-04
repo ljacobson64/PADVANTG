@@ -5,6 +5,13 @@
 #include <iostream>
 #include <vector>
 
+#ifdef _OPENMP
+#include <omp.h>
+#define THREAD_NUM omp_get_thread_num()
+#else
+#define THREAD_NUM 0
+#endif
+
 #define PI 3.14159265358979323846
 #define FOURPI (4.0 * PI)
 
@@ -153,11 +160,12 @@ class PADVANTG {
   void read_forward_data();
   void read_adjoint_data(int);
   void write_all_data();
-  void calculate_sigma_mixed();
-  void calculate_sigma_pert();
-  void calculate_reverse_angle_map();
+  void allocate_xs_arrays();
   void allocate_forward_arrays();
   void allocate_adjoint_arrays();
+  void calculate_reverse_angle_map();
+  void calculate_sigma_mixed();
+  void calculate_sigma_pert();
   void calculate_forward_source();
   void calculate_adjoint_source(int);
   void calculate_forward_scalar_flux();

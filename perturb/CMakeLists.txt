@@ -1,6 +1,9 @@
 project(PADVANTG)
 cmake_minimum_required(VERSION 2.8)
 
+# Find OpenMP
+find_package(OpenMP REQUIRED)
+
 # Find HDF5
 find_package(HDF5 COMPONENTS CXX REQUIRED)
 include_directories(${HDF5_INCLUDE_DIRS})
@@ -13,9 +16,6 @@ endif ()
 # Automatically include linked directories in the rpath
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH ON)
 
-# Suppress warning
-list(APPEND CMAKE_CXX_FLAGS -Wno-narrowing)
-
 # Print some variables to the screen
 message("")
 message(STATUS "HDF5_LIBRARIES:       ${HDF5_LIBRARIES}"      )
@@ -26,5 +26,5 @@ message("")
 
 # Install executables
 add_executable(calculate calculate.cpp)
-target_link_libraries(calculate ${HDF5_LIBRARIES})
+target_link_libraries(calculate OpenMP::OpenMP_CXX ${HDF5_LIBRARIES})
 install(TARGETS calculate DESTINATION ".")
