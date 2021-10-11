@@ -1,6 +1,9 @@
 project(PADVANTG)
 cmake_minimum_required(VERSION 2.8)
 
+# Use C++17
+set(CMAKE_CXX_STANDARD 17)
+
 # Find OpenMP
 find_package(OpenMP REQUIRED)
 
@@ -31,6 +34,6 @@ message(STATUS "CMAKE_BUILD_TYPE:     ${CMAKE_BUILD_TYPE}"    )
 message("")
 
 # Install executables
-add_executable(calculate calculate.cpp)
+add_executable(calculate main.cpp CalculateDR.cpp)
 target_link_libraries(calculate OpenMP::OpenMP_CXX ${Boost_LIBRARIES} ${HDF5_LIBRARIES})
 install(TARGETS calculate DESTINATION ".")

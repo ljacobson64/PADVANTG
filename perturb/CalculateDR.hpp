@@ -48,7 +48,7 @@ struct MixData {
 };
 
 // Setup mapping between C++ type and HDF5 data type
-H5::DataType get_mixtable_type() {
+inline H5::DataType get_mixtable_type() {
   H5::CompType mixtable_type(sizeof(MixData));
   mixtable_type.insertMember("row", HOFFSET(MixData, row),
                              H5::PredType::NATIVE_INT32);
@@ -62,12 +62,14 @@ template <typename T> struct get_hdf5_data_type {
   static const H5::DataType type;
 };
 template <>
-const H5::DataType get_hdf5_data_type<int>::type = H5::PredType::NATIVE_INT32;
+inline const H5::DataType get_hdf5_data_type<int>::type =
+    H5::PredType::NATIVE_INT32;
 template <>
-const H5::DataType get_hdf5_data_type<double>::type =
+inline const H5::DataType get_hdf5_data_type<double>::type =
     H5::PredType::NATIVE_DOUBLE;
 template <>
-const H5::DataType get_hdf5_data_type<MixData>::type = get_mixtable_type();
+inline const H5::DataType
+    get_hdf5_data_type<MixData>::type = get_mixtable_type();
 
 template <typename T, size_t NDIMS>
 void read_hdf5_array(H5::H5File hf, const string &dname,
