@@ -1,4 +1,13 @@
+#include <boost/program_options.hpp>
+
 #include "calculate.hpp"
+
+namespace po = boost::program_options;
+
+PADVANTG::PADVANTG(bool _write_more) {
+  calculate_current = _write_more;
+  write_more = _write_more;
+}
 
 void PADVANTG::read_tally_ids() {
   TIME_START("Reading tally IDs from file...");
@@ -65,22 +74,26 @@ void PADVANTG::read_adjoint_data(int ias) {
 void PADVANTG::write_all_data() {
   TIME_START("Writing all data to HDF5...");
   // H5::H5File hf_xs("hdf5/xs.h5", H5F_ACC_TRUNC);
-  H5::H5File hf_plot("hdf5/plot_data.h5", H5F_ACC_TRUNC);
-  H5::H5File hf_main("hdf5/main.h5", H5F_ACC_TRUNC);
   // write_hdf5_array(hf_xs, "sigma_t_mixed", sigma_t_mixed);
   // write_hdf5_array(hf_xs, "sigma_s_mixed", sigma_s_mixed);
   // write_hdf5_array(hf_xs, "sigma_t_pert", sigma_t_pert);
   // write_hdf5_array(hf_xs, "sigma_s_pert", sigma_s_pert);
-  write_hdf5_array(hf_plot, "source_fwd", source_fwd);
-  write_hdf5_array(hf_plot, "source_adj", source_adj);
-  write_hdf5_array(hf_plot, "scalar_flux_fwd", scalar_flux_fwd);
-  write_hdf5_array(hf_plot, "scalar_flux_adj", scalar_flux_adj);
-  write_hdf5_array(hf_plot, "scalar_flux_con", scalar_flux_con);
-  write_hdf5_array(hf_plot, "current_fwd", current_fwd);
-  write_hdf5_array(hf_plot, "current_adj", current_adj);
-  write_hdf5_array(hf_plot, "current_con", current_con);
+  H5::H5File hf_main("hdf5/main.h5", H5F_ACC_TRUNC);
   write_hdf5_array(hf_main, "response", response);
   write_hdf5_array(hf_main, "dR", dR);
+  if (write_more) {
+    H5::H5File hf_plot("hdf5/more_data.h5", H5F_ACC_TRUNC);
+    write_hdf5_array(hf_plot, "source_fwd", source_fwd);
+    write_hdf5_array(hf_plot, "source_adj", source_adj);
+    write_hdf5_array(hf_plot, "scalar_flux_fwd", scalar_flux_fwd);
+    write_hdf5_array(hf_plot, "scalar_flux_adj", scalar_flux_adj);
+    write_hdf5_array(hf_plot, "scalar_flux_con", scalar_flux_con);
+    if (calculate_current) {
+      write_hdf5_array(hf_plot, "current_fwd", current_fwd);
+      write_hdf5_array(hf_plot, "current_adj", current_adj);
+      write_hdf5_array(hf_plot, "current_con", current_con);
+    }
+  }
   TIME_END();
 }
 
@@ -97,7 +110,9 @@ void PADVANTG::allocate_forward_arrays() {
   TIME_START("Allocating forward arrays...");
   source_fwd.resize(extents[ngx][nz][ny][nx]);
   scalar_flux_fwd.resize(extents[ngx][nz][ny][nx]);
-  current_fwd.resize(extents[ngx][nz][ny][nx][3]);
+  if (calculate_current) {
+    current_fwd.resize(extents[ngx][nz][ny][nx][3]);
+  }
   TIME_END();
 }
 
@@ -106,8 +121,10 @@ void PADVANTG::allocate_adjoint_arrays() {
   source_adj.resize(extents[nas][ngx][nz][ny][nx]);
   scalar_flux_adj.resize(extents[nas][ngx][nz][ny][nx]);
   scalar_flux_con.resize(extents[nas][ngx][nz][ny][nx]);
-  current_adj.resize(extents[nas][ngx][nz][ny][nx][3]);
-  current_con.resize(extents[nas][ngx][nz][ny][nx][3]);
+  if (calculate_current) {
+    current_adj.resize(extents[nas][ngx][nz][ny][nx][3]);
+    current_con.resize(extents[nas][ngx][nz][ny][nx][3]);
+  }
   response.resize(extents[nas]);
   dR.resize(extents[nas][nm][nz][ny][nx]);
   TIME_END();
@@ -385,21 +402,74 @@ void PADVANTG::run_all() {
   calculate_sigma_pert();
   calculate_forward_source();
   calculate_forward_scalar_flux();
-  calculate_forward_current();
+  if (calculate_current) {
+    calculate_forward_current();
+  }
   allocate_adjoint_arrays();
   for (int i = 0; i < nas; i++) {
     read_adjoint_data(i);
     calculate_adjoint_source(i);
     calculate_adjoint_scalar_flux(i);
-    calculate_adjoint_current(i);
+    if (calculate_current) {
+      calculate_adjoint_current(i);
+    }
     calculate_response(i);
     calculate_dR(i);
   }
   write_all_data();
 }
 
-int main() {
-  PADVANTG p = PADVANTG();
+po::variables_map parse_args(int argc, char **argv) {
+  // Define command line options
+  po::variables_map vm;
+  po::options_description desc("Allowed Options");
+  desc.add_options()("help,h", po::bool_switch()->default_value(false),
+                     "Display this information.")(
+      "write_more,w", po::bool_switch()->default_value(false),
+      "Write source, flux, and current data to HDF5.")(
+      "num_threads,j", po::value<int>()->default_value(1),
+      "Number of threads to use.");
+
+  // Parse arguments and look for invalid options
+  try {
+    po::store(po::parse_command_line(argc, argv, desc), vm);
+    po::notify(vm);
+  } catch (std::exception &e) {
+    std::cout << "Error: " << e.what() << std::endl;
+    std::cout << desc << std::endl;
+    exit(1);
+  }
+
+  // Display help message if requested
+  if (vm["help"].as<bool>()) {
+    std::cout << desc << std::endl;
+    exit(0);
+  }
+
+  // Set number of OMP threads and error-check
+  int num_threads = vm["num_threads"].as<int>();
+#ifdef _OPENMP
+  if (num_threads < 1) {
+    std::cout << "Error: number of threads must be positive." << std::endl;
+    exit(1);
+  }
+  omp_set_num_threads(num_threads);
+#else
+  if (num_threads != 1) {
+    std::cout << "Warning: the program was not compiled with OMP support but "
+                 "multiple threads were requested in the command line. "
+                 "Calculation will proceed with a single thread."
+              << std::endl;
+  }
+#endif
+
+  // Return options
+  return vm;
+}
+
+int main(int argc, char **argv) {
+  po::variables_map vm = parse_args(argc, argv);
+  PADVANTG p = PADVANTG(vm["write_more"].as<bool>());
   p.run_all();
   return 0;
 }

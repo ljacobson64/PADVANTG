@@ -100,6 +100,11 @@ void write_hdf5_array(H5::H5File hf, const string &dname,
 }
 
 class PADVANTG {
+  // Flag to calculate current
+  bool calculate_current;
+  // Flag to calculate and write source, flux, and current data to file
+  bool write_more;
+
   // Variables for timing
   high_resolution_clock::time_point begin, end;
   double elapsed;
@@ -176,5 +181,6 @@ class PADVANTG {
   void calculate_dR(int);
 
 public:
+  PADVANTG(bool);
   void run_all();
 };
