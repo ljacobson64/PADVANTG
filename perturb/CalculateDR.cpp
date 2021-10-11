@@ -1,11 +1,11 @@
 #include "CalculateDR.hpp"
 
-PADVANTG::PADVANTG(bool _write_more) {
+CalculateDR::CalculateDR(bool _write_more) {
   calculate_current = _write_more;
   write_more = _write_more;
 }
 
-void PADVANTG::read_tally_ids() {
+void CalculateDR::read_tally_ids() {
   TIME_START("Reading tally IDs from file...");
   string fname = "tally_list.txt";
   std::ifstream infile(fname);
@@ -18,7 +18,7 @@ void PADVANTG::read_tally_ids() {
   TIME_END();
 }
 
-void PADVANTG::read_xs_data() {
+void CalculateDR::read_xs_data() {
   TIME_START("Reading cross section data from HDF5...");
   H5::H5File hf_xs("hdf5/advantg_xs.h5", H5F_ACC_RDONLY);
   read_hdf5_array(hf_xs, "sigma_t", sigma_t);
@@ -27,7 +27,7 @@ void PADVANTG::read_xs_data() {
   ngx = sigma_t.shape()[1];
   TIME_END();
 }
-void PADVANTG::read_forward_data() {
+void CalculateDR::read_forward_data() {
   TIME_START("Reading forward flux data from HDF5...");
   H5::H5File hf_fi("hdf5/advantg_fwd_inp.h5", H5F_ACC_RDONLY);
   H5::H5File hf_fo("hdf5/advantg_fwd_out.h5", H5F_ACC_RDONLY);
@@ -49,7 +49,7 @@ void PADVANTG::read_forward_data() {
   TIME_END();
 }
 
-void PADVANTG::read_adjoint_data(int ias) {
+void CalculateDR::read_adjoint_data(int ias) {
   TIME_START(("Reading adjoint flux data from HDF5 for tally " +
               to_string(tallies[ias]) + "...")
                  .c_str());
@@ -67,7 +67,7 @@ void PADVANTG::read_adjoint_data(int ias) {
   TIME_END();
 }
 
-void PADVANTG::write_all_data() {
+void CalculateDR::write_all_data() {
   TIME_START("Writing all data to HDF5...");
   // H5::H5File hf_xs("hdf5/xs.h5", H5F_ACC_TRUNC);
   // write_hdf5_array(hf_xs, "sigma_t_mixed", sigma_t_mixed);
@@ -93,7 +93,7 @@ void PADVANTG::write_all_data() {
   TIME_END();
 }
 
-void PADVANTG::allocate_xs_arrays() {
+void CalculateDR::allocate_xs_arrays() {
   TIME_START("Allocating cross section arrays...");
   sigma_t_mixed.resize(extents[nmix][ngx]);
   sigma_s_mixed.resize(extents[nmix][ngx][ngx]);
@@ -102,7 +102,7 @@ void PADVANTG::allocate_xs_arrays() {
   TIME_END();
 }
 
-void PADVANTG::allocate_forward_arrays() {
+void CalculateDR::allocate_forward_arrays() {
   TIME_START("Allocating forward arrays...");
   source_fwd.resize(extents[ngx][nz][ny][nx]);
   scalar_flux_fwd.resize(extents[ngx][nz][ny][nx]);
@@ -112,7 +112,7 @@ void PADVANTG::allocate_forward_arrays() {
   TIME_END();
 }
 
-void PADVANTG::allocate_adjoint_arrays() {
+void CalculateDR::allocate_adjoint_arrays() {
   TIME_START("Allocating adjoint arrays...");
   source_adj.resize(extents[nas][ngx][nz][ny][nx]);
   scalar_flux_adj.resize(extents[nas][ngx][nz][ny][nx]);
@@ -126,7 +126,7 @@ void PADVANTG::allocate_adjoint_arrays() {
   TIME_END();
 }
 
-void PADVANTG::calculate_reverse_angle_map() {
+void CalculateDR::calculate_reverse_angle_map() {
   TIME_START("Calculating reverse angle map...");
   reverse_angle_map.resize(extents[na]);
 #pragma omp parallel for schedule(guided)
@@ -147,7 +147,7 @@ void PADVANTG::calculate_reverse_angle_map() {
   TIME_END();
 }
 
-void PADVANTG::calculate_sigma_mixed() {
+void CalculateDR::calculate_sigma_mixed() {
   TIME_START("Calculating cross sections for mixed materials...");
 #pragma omp parallel for schedule(guided)
   for (int i = 0; i < mixtable.shape()[0]; i++) { // Mix table entry index
@@ -164,7 +164,7 @@ void PADVANTG::calculate_sigma_mixed() {
   TIME_END();
 }
 
-void PADVANTG::calculate_sigma_pert() {
+void CalculateDR::calculate_sigma_pert() {
   TIME_START("Calculating perturbations in cross sections...");
 #pragma omp parallel for schedule(guided)
   for (int imix = 0; imix < nmix; imix++) { // Mixed material index
@@ -182,7 +182,7 @@ void PADVANTG::calculate_sigma_pert() {
   TIME_END();
 }
 
-void PADVANTG::calculate_forward_source() {
+void CalculateDR::calculate_forward_source() {
   TIME_START("Calculating forward 4D source...");
 #pragma omp parallel for schedule(guided)
   for (int igx = 0; igx < ngx; igx++) { // Energy index
@@ -199,7 +199,7 @@ void PADVANTG::calculate_forward_source() {
   TIME_END();
 }
 
-void PADVANTG::calculate_adjoint_source(int ias) {
+void CalculateDR::calculate_adjoint_source(int ias) {
   TIME_START(("Calculating adjoint 4D source for tally " +
               to_string(tallies[ias]) + "...")
                  .c_str());
@@ -218,7 +218,7 @@ void PADVANTG::calculate_adjoint_source(int ias) {
   TIME_END();
 }
 
-void PADVANTG::calculate_forward_scalar_flux() {
+void CalculateDR::calculate_forward_scalar_flux() {
   TIME_START("Calculating forward scalar flux...");
 #pragma omp parallel for schedule(guided)
   for (int igx = 0; igx < ngx; igx++) {     // Energy index
@@ -240,7 +240,7 @@ void PADVANTG::calculate_forward_scalar_flux() {
   TIME_END();
 }
 
-void PADVANTG::calculate_adjoint_scalar_flux(int ias) {
+void CalculateDR::calculate_adjoint_scalar_flux(int ias) {
   TIME_START(("Calculating adjoint scalar flux for tally " +
               to_string(tallies[ias]) + "...")
                  .c_str());
@@ -270,7 +270,7 @@ void PADVANTG::calculate_adjoint_scalar_flux(int ias) {
   TIME_END();
 }
 
-void PADVANTG::calculate_forward_current() {
+void CalculateDR::calculate_forward_current() {
   TIME_START("Calculating forward current...");
 #pragma omp parallel for schedule(guided)
   for (int igx = 0; igx < ngx; igx++) {     // Energy index
@@ -295,7 +295,7 @@ void PADVANTG::calculate_forward_current() {
   TIME_END();
 }
 
-void PADVANTG::calculate_adjoint_current(int ias) {
+void CalculateDR::calculate_adjoint_current(int ias) {
   TIME_START(("Calculating adjoint current for tally " +
               to_string(tallies[ias]) + "...")
                  .c_str());
@@ -327,7 +327,7 @@ void PADVANTG::calculate_adjoint_current(int ias) {
   TIME_END();
 }
 
-void PADVANTG::calculate_response(int ias) {
+void CalculateDR::calculate_response(int ias) {
   TIME_START(
       ("Calculating response for tally " + to_string(tallies[ias]) + "...")
           .c_str());
@@ -346,7 +346,7 @@ void PADVANTG::calculate_response(int ias) {
   TIME_END();
 }
 
-void PADVANTG::calculate_dR(int ias) {
+void CalculateDR::calculate_dR(int ias) {
   TIME_START(
       ("Calculating dR for tally " + to_string(tallies[ias]) + "...").c_str());
 #pragma omp parallel for schedule(guided)
@@ -386,7 +386,7 @@ void PADVANTG::calculate_dR(int ias) {
   TIME_END();
 }
 
-void PADVANTG::run_all() {
+void CalculateDR::run_all() {
   // Load, calculate, and write all data
   read_tally_ids();
   read_xs_data();

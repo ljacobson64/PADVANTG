@@ -101,7 +101,7 @@ void write_hdf5_array(H5::H5File hf, const string &dname,
   dset.write(A.data(), dtype);
 }
 
-class PADVANTG {
+class CalculateDR {
   // Flag to calculate current
   bool calculate_current;
   // Flag to calculate and write source, flux, and current data to file
@@ -183,6 +183,6 @@ class PADVANTG {
   void calculate_dR(int);
 
 public:
-  PADVANTG(bool);
+  CalculateDR(bool);
   void run_all();
 };

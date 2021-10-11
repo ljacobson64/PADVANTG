@@ -54,7 +54,7 @@ po::variables_map parse_args(int argc, char **argv) {
 
 int main(int argc, char **argv) {
   po::variables_map vm = parse_args(argc, argv);
-  PADVANTG p = PADVANTG(vm["write_more"].as<bool>());
+  CalculateDR p = CalculateDR(vm["write_more"].as<bool>());
   p.run_all();
   return 0;
 }

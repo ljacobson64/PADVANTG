@@ -1,4 +1,4 @@
-project(PADVANTG)
+project(CalculateDR)
 cmake_minimum_required(VERSION 2.8)
 
 # Use C++17
