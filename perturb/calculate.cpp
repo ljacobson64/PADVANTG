@@ -64,21 +64,23 @@ void PADVANTG::read_adjoint_data(int ias) {
 
 void PADVANTG::write_all_data() {
   TIME_START("Writing all data to HDF5...");
-  H5::H5File hf_o("hdf5/data.h5", H5F_ACC_TRUNC);
-  write_hdf5_array(hf_o, "sigma_t_mixed", sigma_t_mixed);
-  write_hdf5_array(hf_o, "sigma_s_mixed", sigma_s_mixed);
-  write_hdf5_array(hf_o, "sigma_t_pert", sigma_t_pert);
-  write_hdf5_array(hf_o, "sigma_s_pert", sigma_s_pert);
-  write_hdf5_array(hf_o, "source_fwd", source_fwd);
-  write_hdf5_array(hf_o, "source_adj", source_adj);
-  write_hdf5_array(hf_o, "scalar_flux_fwd", scalar_flux_fwd);
-  write_hdf5_array(hf_o, "scalar_flux_adj", scalar_flux_adj);
-  write_hdf5_array(hf_o, "scalar_flux_con", scalar_flux_con);
-  write_hdf5_array(hf_o, "current_fwd", current_fwd);
-  write_hdf5_array(hf_o, "current_adj", current_adj);
-  write_hdf5_array(hf_o, "current_con", current_con);
-  write_hdf5_array(hf_o, "response", response);
-  write_hdf5_array(hf_o, "dR", dR);
+  // H5::H5File hf_xs("hdf5/xs.h5", H5F_ACC_TRUNC);
+  H5::H5File hf_plot("hdf5/plot_data.h5", H5F_ACC_TRUNC);
+  H5::H5File hf_main("hdf5/main.h5", H5F_ACC_TRUNC);
+  // write_hdf5_array(hf_xs, "sigma_t_mixed", sigma_t_mixed);
+  // write_hdf5_array(hf_xs, "sigma_s_mixed", sigma_s_mixed);
+  // write_hdf5_array(hf_xs, "sigma_t_pert", sigma_t_pert);
+  // write_hdf5_array(hf_xs, "sigma_s_pert", sigma_s_pert);
+  write_hdf5_array(hf_plot, "source_fwd", source_fwd);
+  write_hdf5_array(hf_plot, "source_adj", source_adj);
+  write_hdf5_array(hf_plot, "scalar_flux_fwd", scalar_flux_fwd);
+  write_hdf5_array(hf_plot, "scalar_flux_adj", scalar_flux_adj);
+  write_hdf5_array(hf_plot, "scalar_flux_con", scalar_flux_con);
+  write_hdf5_array(hf_plot, "current_fwd", current_fwd);
+  write_hdf5_array(hf_plot, "current_adj", current_adj);
+  write_hdf5_array(hf_plot, "current_con", current_con);
+  write_hdf5_array(hf_main, "response", response);
+  write_hdf5_array(hf_main, "dR", dR);
   TIME_END();
 }
 
@@ -386,7 +388,7 @@ void PADVANTG::run_all() {
   calculate_forward_current();
   allocate_adjoint_arrays();
   for (int i = 0; i < nas; i++) {
-    read_adjoint_data(i); // ngfa, g0a
+    read_adjoint_data(i);
     calculate_adjoint_source(i);
     calculate_adjoint_scalar_flux(i);
     calculate_adjoint_current(i);
