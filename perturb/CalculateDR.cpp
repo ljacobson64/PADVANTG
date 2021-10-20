@@ -132,7 +132,7 @@ void CalculateDR::allocate_adjoint_arrays() {
 void CalculateDR::calculate_reverse_angle_map() {
   TIME_START("Calculating reverse angle map...");
   reverse_angle_map.resize(extents[na]);
-#pragma omp parallel for schedule(guided)
+  // pragma omp parallel for schedule(guided)
   for (int ia = 0; ia < na; ia++) {
     double ix = quadrature_angles[ia][0];
     double iy = quadrature_angles[ia][1];
@@ -152,7 +152,7 @@ void CalculateDR::calculate_reverse_angle_map() {
 
 void CalculateDR::calculate_sigma_mixed() {
   TIME_START("Calculating cross sections for mixed materials...");
-#pragma omp parallel for schedule(guided)
+  // pragma omp parallel for schedule(guided)
   for (int i = 0; i < mixtable.shape()[0]; i++) { // Mix table entry index
     int imix = mixtable[i].row;                   // Mixed material index
     int im = mixtable[i].col;                     // Pure material index
@@ -169,7 +169,7 @@ void CalculateDR::calculate_sigma_mixed() {
 
 void CalculateDR::calculate_sigma_pert() {
   TIME_START("Calculating perturbations in cross sections...");
-#pragma omp parallel for schedule(guided)
+  // pragma omp parallel for schedule(guided)
   for (int imix = 0; imix < nmix; imix++) { // Mixed material index
     for (int im = 0; im < nm; im++) {       // Material index
       for (int igx = 0; igx < ngx; igx++) { // Energy index
@@ -334,7 +334,7 @@ void CalculateDR::calculate_response(int ias) {
   TIME_START(
       ("Calculating response for tally " + to_string(tallies[ias]) + "...")
           .c_str());
-#pragma omp parallel for schedule(guided)
+  // pragma omp parallel for schedule(guided)
   for (int igx = 0; igx < ngx; igx++) {                  // Energy index
     for (int iz = 0; iz < nz; iz++) {                    // Z mesh index
       double dz = mesh_z[iz + 1] - mesh_z[iz];           // Z length
