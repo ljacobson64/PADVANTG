@@ -37,6 +37,9 @@ void CalculateDR::read_forward_data() {
   read_hdf5_array(hf_fo, "denovo/quadrature_weights", quadrature_weights);
   read_hdf5_array(hf_fi, "volsrc/spectra", source_spectra_fwd);
   read_hdf5_array(hf_fi, "volsrc/strength", source_strength_fwd);
+  read_hdf5_array(hf_fo, "denovo/mesh_x", mesh_x);
+  read_hdf5_array(hf_fo, "denovo/mesh_y", mesh_y);
+  read_hdf5_array(hf_fo, "denovo/mesh_z", mesh_z);
   read_hdf5_array(hf_fo, "denovo/mesh_g", mesh_g_fwd);
   read_hdf5_array(hf_fo, "denovo/angular_flux", angular_flux_fwd);
   nmix = mixtable[mixtable.shape()[0] - 1].row + 1;
@@ -332,13 +335,17 @@ void CalculateDR::calculate_response(int ias) {
       ("Calculating response for tally " + to_string(tallies[ias]) + "...")
           .c_str());
 #pragma omp parallel for schedule(guided)
-  for (int igx = 0; igx < ngx; igx++) {   // Energy index
-    for (int iz = 0; iz < nz; iz++) {     // Z mesh index
-      for (int iy = 0; iy < ny; iy++) {   // Y mesh index
-        for (int ix = 0; ix < nx; ix++) { // X mesh index
-          double sff = scalar_flux_fwd[igx][iz][iy][ix];
-          double sa = source_adj[ias][igx][iz][iy][ix];
-          response[ias] += sff * sa;
+  for (int igx = 0; igx < ngx; igx++) {                  // Energy index
+    for (int iz = 0; iz < nz; iz++) {                    // Z mesh index
+      double dz = mesh_z[iz + 1] - mesh_z[iz];           // Z length
+      for (int iy = 0; iy < ny; iy++) {                  // Y mesh index
+        double dy = mesh_y[iy + 1] - mesh_y[iy];         // Y length
+        for (int ix = 0; ix < nx; ix++) {                // X mesh index
+          double dx = mesh_x[ix + 1] - mesh_x[ix];       // X length
+          double volume = dx * dy * dz;                  // Volume
+          double sff = scalar_flux_fwd[igx][iz][iy][ix]; // Forward flux
+          double sa = source_adj[ias][igx][iz][iy][ix];  // Adjoint source
+          response[ias] += sff * sa * volume;
         }
       }
     }

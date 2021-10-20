@@ -135,6 +135,9 @@ class CalculateDR {
   multi_array<int, 3> matids;                 // Material map
   multi_array<double, 2> quadrature_angles;   // Quadrature angles
   multi_array<double, 1> quadrature_weights;  // Quadrature weights
+  multi_array<double, 1> mesh_x;              // Mesh points (x)
+  multi_array<double, 1> mesh_y;              // Mesh points (y)
+  multi_array<double, 1> mesh_z;              // Mesh points (z)
   multi_array<double, 2> source_spectra_fwd;  // Forward source spectra
   multi_array<double, 3> source_strength_fwd; // Forward source strength
   multi_array<int, 1> mesh_g_fwd;             // Forward energy bin indices
