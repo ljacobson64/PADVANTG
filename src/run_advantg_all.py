@@ -44,7 +44,7 @@ def main():
             os.system('ln -snfv ../forward/model  .')
 
         # Run ADVANTG
-        os.system('bash ../../perturb/run_advantg_once.sh')
+        os.system('bash ../../src/run_advantg_once.sh')
         os.chdir('..')
 
 if __name__ == '__main__': main()
