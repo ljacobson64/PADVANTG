@@ -4,7 +4,7 @@ base_dir=${PWD}
 versions="3.0.3 3.2.0"
 
 mkdir -pv patch
-cd ${base_dir}/src
+cd ${base_dir}/advantg-src
 
 for version in ${versions}; do
   echo "Generating patch file for version ${version}"

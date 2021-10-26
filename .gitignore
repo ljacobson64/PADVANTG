@@ -1,4 +1,4 @@
 *.pyc
 __pycache__
-/install
-/src
+/advantg-install
+/advantg-src
